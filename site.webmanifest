@@ -1,0 +1,16 @@
+{
+  "name": "Babylon Editor",
+  "short_name": "Babylon",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0d0e11",
+  "theme_color": "#0d0e11",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+
