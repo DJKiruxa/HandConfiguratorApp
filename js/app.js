@@ -1,5 +1,6 @@
 import { initToasts, toast } from './modules/toast.js';
-import { initTheme, toggleTheme, applyAccent, ACCENT_NAMES, getAccent } from './modules/theme.js';
+import { initTheme, toggleTheme } from './modules/theme.js';
+import { initSnakeGame } from './modules/snakeGame.js';
 import { EVENTS, on, emit } from './modules/eventBus.js';
 import { DashboardRecipe, ASSEMBLY_STORAGE_KEY } from './modules/recipe.js';
 import { createDashboardScene } from './modules/scene.js';
@@ -44,45 +45,71 @@ function wireDashboardUI(dash) {
 function wireTheme() {
   const themeBtn = document.querySelector('[data-action="toggle-theme"]');
   themeBtn?.addEventListener('click', () => toggleTheme());
-
-  const accentBox = document.querySelector('[data-accent-picker]');
-  if (accentBox) {
-    accentBox.innerHTML = ACCENT_NAMES.map((n) => `<button type="button" class="accent-swatch accent-${n}${getAccent() === n ? ' active' : ''}" data-accent="${n}" title="${n}"></button>`).join('');
-    accentBox.addEventListener('click', (e) => {
-      const b = e.target.closest('[data-accent]');
-      if (!b) return;
-      applyAccent(b.dataset.accent);
-      accentBox.querySelectorAll('.accent-swatch').forEach((s) => s.classList.toggle('active', s === b));
-    });
-  }
 }
 
+function isEditableKeyTarget(t) {
+  if (!t || t === document.body) return false;
+  const tag = (t.tagName || '').toLowerCase();
+  return tag === 'input' || tag === 'textarea' || tag === 'select' || t.isContentEditable;
+}
+
+/**
+ * Слушатель в фазе capture: canvas Babylon получает keydown раньше, чем всплытие
+ * дойдёт до window — иначе N / T / F и отмена не срабатывают при фокусе на сцене.
+ */
 function wireShortcuts(recipe) {
-  window.addEventListener('keydown', (e) => {
-    const tag = (e.target?.tagName || '').toLowerCase();
-    const inEditable = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target?.isContentEditable;
-    if (inEditable) return;
+  const onKey = (e) => {
+    if (isEditableKeyTarget(e.target)) return;
 
     const cmd = e.ctrlKey || e.metaKey;
-    if (cmd && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); recipe.undo(); return; }
-    if (cmd && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) { e.preventDefault(); recipe.redo(); return; }
-    if (e.key === 'n' || e.key === 'N')  { e.preventDefault(); recipe.resetHandPose(); return; }
-    if (e.key === 't' || e.key === 'T')  { e.preventDefault(); toggleTheme(); return; }
-    if (e.key === '?') {
-      toast('N — сброс пальцев, T — тема, Ctrl+Z / Ctrl+Y — отмена/повтор, F — на весь экран', { timeout: 4500 });
-    }
-    if (e.key === 'f' || e.key === 'F') {
+
+    if (cmd && e.code === 'KeyZ' && !e.shiftKey) {
       e.preventDefault();
+      e.stopPropagation();
+      recipe.undo();
+      return;
+    }
+    if (cmd && (e.code === 'KeyY' || (e.shiftKey && e.code === 'KeyZ'))) {
+      e.preventDefault();
+      e.stopPropagation();
+      recipe.redo();
+      return;
+    }
+
+    if (!cmd && e.code === 'KeyN') {
+      e.preventDefault();
+      e.stopPropagation();
+      recipe.resetHandPose();
+      return;
+    }
+    if (!cmd && e.code === 'KeyT') {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleTheme();
+      return;
+    }
+    if (!cmd && (e.key === '?' || (e.code === 'Slash' && e.shiftKey))) {
+      e.preventDefault();
+      e.stopPropagation();
+      toast('N — сброс пальцев, T — тема, Ctrl+Z / Ctrl+Y — отмена/повтор, F — на весь экран', { timeout: 4500 });
+      return;
+    }
+    if (!cmd && e.code === 'KeyF') {
+      e.preventDefault();
+      e.stopPropagation();
       const el = document.querySelector('.scene-area');
       if (!document.fullscreenElement) el?.requestFullscreen?.();
       else document.exitFullscreen?.();
     }
-  });
+  };
+
+  window.addEventListener('keydown', onKey, true);
 }
 
 function main() {
   initTheme();
   initToasts();
+  initSnakeGame();
 
   const dashCanvas = document.getElementById('dashboardCanvas');
   const fpsEl = document.getElementById('fpsCounter');

@@ -9,7 +9,7 @@
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
   <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="app-body">
@@ -34,7 +34,6 @@
           <div class="shortcut-row"><kbd class="shortcut-kbd">F</kbd><span class="shortcut-label">на весь экран</span></div>
         </div>
         <div class="side-toolbar-tools">
-          <div class="accent-row accent-row--side" data-accent-picker aria-label="Акцент"></div>
           <button type="button" class="btn btn-ghost" data-action="toggle-theme" title="Тема (T)">тема</button>
         </div>
         <div class="side-toolbar-status">
@@ -102,6 +101,8 @@
           </label>
         </div>
       </div>
+
+      <div class="card card--compact snake-card" id="snakeGameRoot" tabindex="0" aria-label="Змейка"></div>
     </aside>
 
     <section class="dash-scene" aria-label="3D">
