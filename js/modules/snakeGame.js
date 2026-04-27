@@ -9,11 +9,12 @@
  */
 import { on, EVENTS } from './eventBus.js';
 
-const COLS = 17;
-const ROWS = 17;
 const BASE_TICK_MS = 140;
 const MIN_TICK_MS = 60;
 const SPEEDUP_EVERY = 5;
+const TARGET_CELL = 24;
+const MIN_COLS = 7;
+const MIN_ROWS = 7;
 
 function readPalette() {
   const cs = getComputedStyle(document.documentElement);
@@ -112,8 +113,10 @@ function createInstance(root) {
   let palette = readPalette();
   let dpr = 1;
   let cell = 16;
-  let W = COLS * cell;
-  let H = ROWS * cell;
+  let cols = 17;
+  let rows = 17;
+  let W = cols * cell;
+  let H = rows * cell;
 
   let snake = [];
   let prev = [];
@@ -135,19 +138,35 @@ function createInstance(root) {
 
   function setCanvasSize() {
     const rect = stage.getBoundingClientRect();
-    const padW = Math.max(0, Math.floor(rect.width));
-    const padH = Math.max(0, Math.floor(rect.height));
-    const side = Math.max(48, Math.min(padW, padH));
-    cell = Math.floor(side / COLS);
-    if (cell < 6) cell = 6;
-    W = cell * COLS;
-    H = cell * ROWS;
+    const padW = Math.max(48, Math.floor(stage.clientWidth || rect.width));
+    const padH = Math.max(48, Math.floor(stage.clientHeight || rect.height));
+    const oldCols = cols;
+    const oldRows = rows;
+
+    // Canvas is always full parent width. Column count adapts to that width,
+    // then row count is whatever fits in the available height without scroll.
+    cols = Math.max(MIN_COLS, Math.round(padW / TARGET_CELL));
+    cell = padW / cols;
+    rows = Math.max(1, Math.floor(padH / cell));
+    if (rows < MIN_ROWS && padH >= MIN_ROWS * 6) {
+      cell = padH / MIN_ROWS;
+      cols = Math.max(MIN_COLS, Math.floor(padW / cell));
+      cell = padW / cols;
+      rows = Math.max(1, Math.floor(padH / cell));
+    }
+
+    W = padW;
+    H = rows * cell;
     dpr = Math.min(2, window.devicePixelRatio || 1);
     canvas.width = Math.floor(W * dpr);
     canvas.height = Math.floor(H * dpr);
     canvas.style.width = `${W}px`;
     canvas.style.height = `${H}px`;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    if (snake.length && (cols !== oldCols || rows !== oldRows)) {
+      resetGame();
+    }
   }
 
   function listTaken() {
@@ -159,8 +178,8 @@ function createInstance(root) {
   function placeFood() {
     const taken = listTaken();
     const free = [];
-    for (let y = 0; y < ROWS; y++) {
-      for (let x = 0; x < COLS; x++) {
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
         if (!taken.has(`${x},${y}`)) free.push({ x, y });
       }
     }
@@ -169,8 +188,8 @@ function createInstance(root) {
   }
 
   function resetGame() {
-    const cy = Math.floor(ROWS / 2);
-    const cx = Math.floor(COLS / 2);
+    const cy = Math.floor(rows / 2);
+    const cx = Math.floor(cols / 2);
     snake = [
       { x: cx + 1, y: cy },
       { x: cx,     y: cy },
@@ -219,7 +238,7 @@ function createInstance(root) {
     }
     const head = snake[0];
     const nh = { x: head.x + dir.x, y: head.y + dir.y };
-    if (nh.x < 0 || nh.x >= COLS || nh.y < 0 || nh.y >= ROWS) { gameOver(); return; }
+    if (nh.x < 0 || nh.x >= cols || nh.y < 0 || nh.y >= rows) { gameOver(); return; }
     const willGrow = food.x >= 0 && eq(nh, food);
     for (let i = 0; i < snake.length; i++) {
       if (!eq(snake[i], nh)) continue;
@@ -248,11 +267,11 @@ function createInstance(root) {
     ctx.strokeStyle = rgbaFromCss(palette.border, 0.3);
     ctx.lineWidth = 1;
     ctx.beginPath();
-    for (let x = 1; x < COLS; x++) {
+    for (let x = 1; x < cols; x++) {
       const px = Math.round(x * cell) + 0.5;
       ctx.moveTo(px, 0); ctx.lineTo(px, H);
     }
-    for (let y = 1; y < ROWS; y++) {
+    for (let y = 1; y < rows; y++) {
       const py = Math.round(y * cell) + 0.5;
       ctx.moveTo(0, py); ctx.lineTo(W, py);
     }
