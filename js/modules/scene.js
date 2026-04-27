@@ -13,6 +13,8 @@ const ARM_GLB = 'ARM.glb';
 const ARM_DIR = 'img/models/';
 const MAX_PHALANGE_BEND_RAD = Math.PI / 2;
 const PHALANGE_BONES = [
+  { fingerIndex: 0, type: 'finger', index: 0, name: 'Bone.018' },
+  { fingerIndex: 0, type: 'finger', index: 0, name: 'Bone.019' },
   { type: 'proximal', index: 3, name: 'Bone.005' },
   { type: 'middle', index: 3, name: 'Bone.006' },
   { type: 'proximal', index: 2, name: 'Bone.008' },
@@ -22,6 +24,12 @@ const PHALANGE_BONES = [
   { type: 'proximal', index: 0, name: 'Bone.015' },
   { type: 'middle', index: 0, name: 'Bone.016' },
 ];
+const PHALANGE_TO_FINGER_INDEX = {
+  0: 1,
+  1: 2,
+  2: 3,
+  3: 4,
+};
 
 function readStoredHandPose() {
   try {
@@ -34,6 +42,11 @@ function readStoredHandPose() {
 
 function getPhalangePercent(handPose, type, index) {
   const value = Number(handPose?.phalanges?.[type]?.[index] ?? 0);
+  return Number.isFinite(value) ? -clamp(value, -100, 100) : 0;
+}
+
+function getFingerPercent(handPose, index) {
+  const value = Number(handPose?.values?.[index] ?? 0);
   return Number.isFinite(value) ? -clamp(value, -100, 100) : 0;
 }
 
@@ -226,7 +239,11 @@ export function createDashboardScene(canvas, opts = {}) {
     if (!activeHandPose || !phalangeRig.length) return;
 
     for (const cfg of phalangeRig) {
-      const angle = (getPhalangePercent(activeHandPose, cfg.type, cfg.index) / 100) * MAX_PHALANGE_BEND_RAD;
+      const fingerIndex = cfg.fingerIndex ?? PHALANGE_TO_FINGER_INDEX[cfg.index];
+      const percent = cfg.type === 'finger'
+        ? getFingerPercent(activeHandPose, cfg.index)
+        : clamp(getFingerPercent(activeHandPose, fingerIndex) + getPhalangePercent(activeHandPose, cfg.type, cfg.index), -100, 100);
+      const angle = (percent / 100) * MAX_PHALANGE_BEND_RAD;
       BABYLON.Quaternion.RotationAxisToRef(bendAxis, angle, bendQ);
       cfg.base.multiplyToRef(bendQ, cfg.tm.rotationQuaternion);
     }
