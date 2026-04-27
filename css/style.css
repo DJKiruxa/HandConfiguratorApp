@@ -47,6 +47,13 @@
   --header-bg: color-mix(in srgb, var(--bg) 85%, transparent);
   --grid-line: color-mix(in srgb, var(--nav-color) 5%, transparent);
   --grid-cell: 40px;
+  --app-pad: clamp(0.25rem, 0.2rem + 0.45vw, 0.75rem);
+  --app-gap: clamp(0.25rem, 0.15rem + 0.45vw, 0.625rem);
+  --panel-min: clamp(12rem, 16vw, 18rem);
+  --scene-min: clamp(18rem, 44vh, 40rem);
+  --card-pad: clamp(0.5rem, 0.42rem + 0.35vw, 0.875rem);
+  --touch-hit: 2.75rem;
+  --control-font: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
 }
 
 html[data-theme="light"] {
@@ -214,6 +221,7 @@ body.app-body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body::before {
@@ -408,8 +416,8 @@ body::before {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 4px 6px;
-  gap: 4px;
+  padding: var(--app-pad);
+  gap: var(--app-gap);
 }
 
 .shortcuts-bar {
@@ -439,16 +447,19 @@ body::before {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(200px, 1fr) minmax(280px, 1.4fr) minmax(200px, 1fr);
+  grid-template-columns:
+    minmax(min(100%, var(--panel-min)), 0.85fr)
+    minmax(min(100%, 20rem), 1.55fr)
+    minmax(min(100%, var(--panel-min)), 0.95fr);
   grid-template-rows: 1fr;
-  gap: 6px;
+  gap: var(--app-gap);
   align-items: stretch;
 }
 
 .dash-left {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--app-gap);
   min-height: 0;
   overflow: hidden;
   padding-right: 2px;
@@ -507,8 +518,8 @@ body::before {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(2, auto);
-  gap: 4px;
-  padding: 6px;
+  gap: clamp(0.25rem, 0.18rem + 0.3vw, 0.5rem);
+  padding: clamp(0.375rem, 0.3rem + 0.35vw, 0.625rem);
   background: var(--bg2);
   border-top: 1px solid var(--border);
   width: 100%;
@@ -522,9 +533,10 @@ body::before {
   background: var(--bg3);
   color: var(--text);
   font-family: var(--mono);
-  font-size: 16px;
+  font-size: clamp(1rem, 0.9rem + 0.55vw, 1.35rem);
   line-height: 1;
-  padding: 8px 0;
+  min-height: var(--touch-hit);
+  padding: 0.5rem 0;
   border-radius: var(--radius);
   cursor: pointer;
   user-select: none;
@@ -546,7 +558,7 @@ body::before {
 .dash-right {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--app-gap);
   min-height: 0;
   overflow: hidden;
   padding-right: 2px;
@@ -557,7 +569,7 @@ body::before {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  gap: 4px;
+  gap: var(--app-gap);
 }
 
 .scene-toolbar {
@@ -583,7 +595,7 @@ body::before {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 16px;
+  padding: clamp(0.75rem, 0.55rem + 0.55vw, 1rem);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -592,7 +604,7 @@ body::before {
 }
 
 .card--compact {
-  padding: 8px 10px;
+  padding: var(--card-pad);
   gap: 6px;
   border-radius: var(--radius);
 }
@@ -622,7 +634,7 @@ body::before {
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 44px;
+  min-height: var(--touch-hit);
   cursor: pointer;
 }
 
@@ -808,7 +820,7 @@ html[data-theme="light"] .side-shortcuts {
 
 .sliders-actions--tight .btn {
   width: 100%;
-  min-height: 44px;
+  min-height: var(--touch-hit);
 }
 
 .seq-item .seq-done {
@@ -1099,7 +1111,7 @@ html[data-theme="light"] .side-shortcuts {
   align-items: center;
   justify-content: center;
   aspect-ratio: 1 / 1;
-  min-height: 200px;
+  min-height: var(--scene-min);
   position: relative;
   overflow: hidden;
 }
@@ -1185,9 +1197,9 @@ html[data-theme="light"] .side-shortcuts {
 
 .btn {
   font-family: var(--mono);
-  font-size: 13px;
-  padding: 10px 16px;
-  min-height: 40px;
+  font-size: var(--control-font);
+  padding: 0.625rem clamp(0.75rem, 0.6rem + 0.5vw, 1rem);
+  min-height: var(--touch-hit);
   border-radius: 8px;
   border: 1px solid var(--border-hover);
   background: transparent;
@@ -1219,8 +1231,8 @@ html[data-theme="light"] .btn-primary:hover { filter: brightness(0.95); }
 
 /* Кнопки сцены — чуть крупнее тач-зона */
 .scene-toolbar .btn {
-  min-width: 44px;
-  min-height: 44px;
+  min-width: var(--touch-hit);
+  min-height: var(--touch-hit);
   padding: 0 12px;
   font-size: 16px;
   line-height: 1;
@@ -1290,6 +1302,47 @@ input[type=range]::-webkit-slider-thumb {
 }
 
 input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+@media (hover: none), (pointer: coarse) {
+  :root {
+    --touch-hit: 3rem;
+  }
+
+  input[type=range] {
+    height: 0.5rem;
+    border-radius: 999px;
+  }
+
+  input[type=range]::-webkit-slider-thumb,
+  .finger-range::-webkit-slider-thumb,
+  .phalange-range::-webkit-slider-thumb {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  input[type=range]::-moz-range-thumb {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg2);
+  }
+
+  .finger-row,
+  .phalange-row {
+    min-height: var(--touch-hit);
+  }
+
+  .side-toolbar-tools .btn,
+  .send-actions .btn,
+  .sliders-actions .btn {
+    min-height: var(--touch-hit);
+  }
+
+  .snake-card .snake-stage {
+    min-height: 12rem;
+  }
+}
 
 .sliders-actions { display: flex; gap: 8px; margin-top: 4px; }
 
@@ -1363,7 +1416,7 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 }
 .dash-right .card--export .send-actions--export .btn,
 .dash-right .card--export .send-actions .btn {
-  min-height: 44px;
+  min-height: var(--touch-hit);
   padding: 10px 18px;
   font-size: 13px;
 }
@@ -1459,29 +1512,66 @@ textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent
   .row-top { grid-template-columns: 1fr 1fr; }
   .row-top .card:last-child { grid-column: 1 / -1; }
   .dashboard-grid {
-    grid-template-columns: minmax(180px, 1fr) minmax(240px, 1.3fr) minmax(180px, 1fr);
+    grid-template-columns:
+      minmax(min(100%, 11rem), 0.8fr)
+      minmax(min(100%, 18rem), 1.45fr)
+      minmax(min(100%, 11rem), 0.9fr);
   }
 }
 
 @media (max-width: 1000px) {
+  body.app-body {
+    height: auto;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: auto;
+  }
+
+  .app-main {
+    min-height: 100dvh;
+  }
+
   .dashboard-grid {
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: minmax(42vh, 360px) auto;
+    grid-template-rows: minmax(var(--scene-min), 52dvh) auto;
+    align-items: start;
   }
+
   .dash-scene {
     grid-column: 1 / -1;
     grid-row: 1;
-    min-height: 38vh;
+    min-height: var(--scene-min);
   }
+
+  .scene-area--fill {
+    min-height: var(--scene-min);
+  }
+
   .dash-left {
     grid-column: 1;
     grid-row: 2;
-    max-height: 48vh;
   }
+
   .dash-right {
     grid-column: 2;
     grid-row: 2;
-    max-height: 48vh;
+  }
+
+  .dash-left,
+  .dash-right {
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .snake-card {
+    flex: 0 0 auto;
+    min-height: clamp(14rem, 34dvh, 24rem);
+  }
+
+  #fingerPanel.pose-card,
+  .dash-right .card--export {
+    flex: 0 0 auto;
   }
 }
 
@@ -1492,6 +1582,7 @@ textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent
     grid-template-columns: 1fr;
     grid-template-rows: auto;
   }
+
   .dash-left,
   .dash-right,
   .dash-scene {
@@ -1499,13 +1590,52 @@ textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent
     grid-row: auto;
     max-height: none;
   }
-  .dash-scene { min-height: 42vh; }
-  .dash-left { order: 2; }
-  .dash-right { order: 3; }
+
+  .dash-scene,
+  .scene-area--fill {
+    min-height: clamp(18rem, 56dvh, 36rem);
+  }
+
   .dash-scene { order: 1; }
+  .dash-right { order: 2; }
+  .dash-left { order: 3; }
+
+  .phalange-space {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 480px) {
-  .app-main { padding: 4px; }
+  :root {
+    --app-pad: 0.25rem;
+    --app-gap: 0.375rem;
+    --card-pad: 0.5rem;
+    --scene-min: clamp(16rem, 54dvh, 30rem);
+  }
+
   .hud-mono#fpsCounter { display: none; }
+
+  .dash-scene,
+  .scene-area--fill {
+    min-height: var(--scene-min);
+  }
+
+  .scene-toolbar .btn {
+    flex: 1 1 calc(20% - 0.375rem);
+    min-width: var(--touch-hit);
+  }
+
+  .side-shortcuts {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .shortcut-row {
+    grid-template-columns: minmax(3.5rem, auto) 1fr;
+    padding: 0.375rem 0.5rem;
+  }
+
+  .snake-card {
+    min-height: clamp(13rem, 42dvh, 22rem);
+  }
 }
