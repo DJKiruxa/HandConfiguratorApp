@@ -5,12 +5,42 @@ import {
   lerpTransformSnapshot, normalizeAuthoring, getPartTransformForNodeInScene,
   objToVec3,
 } from './utils.js';
-import { ASSEMBLY_STORAGE_KEY } from './recipe.js';
+import { ASSEMBLY_STORAGE_KEY, DASHBOARD_RECIPE_KEY } from './recipe.js';
 import { EVENTS, on } from './eventBus.js';
 import { getTheme } from './theme.js';
 
 const ARM_GLB = 'ARM.glb';
 const ARM_DIR = 'img/models/';
+const MAX_PHALANGE_BEND_RAD = Math.PI / 2;
+const PHALANGE_BONES = [
+  { type: 'proximal', index: 3, name: 'Bone.005' },
+  { type: 'middle', index: 3, name: 'Bone.006' },
+  { type: 'proximal', index: 2, name: 'Bone.008' },
+  { type: 'middle', index: 2, name: 'Bone.009' },
+  { type: 'proximal', index: 1, name: 'Bone.011' },
+  { type: 'middle', index: 1, name: 'Bone.012' },
+  { type: 'proximal', index: 0, name: 'Bone.015' },
+  { type: 'middle', index: 0, name: 'Bone.016' },
+];
+
+function readStoredHandPose() {
+  try {
+    const raw = localStorage.getItem(DASHBOARD_RECIPE_KEY);
+    return raw ? JSON.parse(raw)?.handPose || null : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function getPhalangePercent(handPose, type, index) {
+  const value = Number(handPose?.phalanges?.[type]?.[index] ?? 0);
+  return Number.isFinite(value) ? -clamp(value, -100, 100) : 0;
+}
+
+function findBoneByName(skeleton, name) {
+  const wanted = String(name).toLowerCase();
+  return skeleton?.bones?.find((b) => String(b.name).toLowerCase() === wanted) || null;
+}
 
 export function createDashboardScene(canvas, opts = {}) {
   const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, antialias: true });
@@ -79,6 +109,10 @@ export function createDashboardScene(canvas, opts = {}) {
   let lastAssemblyData = null;
   let clipRunId = 0;
   let dashClipRenderObs = null;
+  let activeHandPose = readStoredHandPose();
+  let phalangeRig = [];
+  const bendAxis = new BABYLON.Vector3(1, 0, 0);
+  const bendQ = new BABYLON.Quaternion();
 
   const dashSceneById = (data, id) => normalizeAuthoring(data?.authoring).scenes.find((s) => s.id === id) || null;
   const dashClipById = (data, id) => normalizeAuthoring(data?.authoring).clips.find((c) => c.id === id) || null;
@@ -165,6 +199,39 @@ export function createDashboardScene(canvas, opts = {}) {
     lockOrbitNoZoom();
   }
 
+  function capturePhalangeRig(skeletons) {
+    const skeleton = (skeletons || scene.skeletons || []).find((sk) => sk?.bones?.length);
+    phalangeRig = [];
+    if (!skeleton) return;
+
+    for (const cfg of PHALANGE_BONES) {
+      const bone = findBoneByName(skeleton, cfg.name);
+      const tm = bone?.getTransformNode?.();
+      if (!tm) {
+        console.warn('bone controller: не найдена TransformNode', cfg.name);
+        continue;
+      }
+      const base = tm.rotationQuaternion
+        ? tm.rotationQuaternion.clone()
+        : BABYLON.Quaternion.FromEulerAngles(tm.rotation.x, tm.rotation.y, tm.rotation.z);
+      tm.rotationQuaternion = tm.rotationQuaternion || base.clone();
+      phalangeRig.push({ ...cfg, tm, base });
+    }
+
+    applyHandPoseToRig(activeHandPose);
+  }
+
+  function applyHandPoseToRig(handPose) {
+    activeHandPose = handPose || activeHandPose;
+    if (!activeHandPose || !phalangeRig.length) return;
+
+    for (const cfg of phalangeRig) {
+      const angle = (getPhalangePercent(activeHandPose, cfg.type, cfg.index) / 100) * MAX_PHALANGE_BEND_RAD;
+      BABYLON.Quaternion.RotationAxisToRef(bendAxis, angle, bendQ);
+      cfg.base.multiplyToRef(bendQ, cfg.tm.rotationQuaternion);
+    }
+  }
+
   const disposeContent = () => {
     if (contentRoot) {
       contentRoot.dispose(false, true);
@@ -201,8 +268,17 @@ export function createDashboardScene(canvas, opts = {}) {
     }
 
     try {
+      scene.stopAllAnimations();
       const result = await BABYLON.SceneLoader.ImportMeshAsync('', ARM_DIR, ARM_GLB, scene);
+      scene.stopAllAnimations();
+      result.animationGroups?.forEach((group) => group.stop());
+      result.skeletons?.forEach((sk) => scene.stopAnimation(sk));
+      result.transformNodes?.forEach((node) => scene.stopAnimation(node));
+      result.meshes?.forEach((mesh) => scene.stopAnimation(mesh));
       const meshes = (result.meshes || []).filter(Boolean);
+      meshes.forEach((mesh) => {
+        mesh.alwaysSelectAsActiveMesh = true;
+      });
       if (!meshes.length) {
         showLoading(false);
         requestAnimationFrame(() => engine.resize());
@@ -212,6 +288,7 @@ export function createDashboardScene(canvas, opts = {}) {
         meshes.find((m) => m.name === '__root__') ||
         result.transformNodes?.find((n) => n && n.name === '__root__') ||
         result.meshes[0];
+      capturePhalangeRig(result.skeletons);
       frameToContent(contentRoot);
     } catch (e) {
       console.warn('ARM.glb', e);
@@ -222,6 +299,8 @@ export function createDashboardScene(canvas, opts = {}) {
   }
 
   reloadAssemblyFromStorage();
+
+  on(EVENTS.HAND_POSE_CHANGED, ({ handPose } = {}) => applyHandPoseToRig(handPose));
 
   if (opts.fpsEl) {
     let acc = 0;
@@ -249,6 +328,7 @@ export function createDashboardScene(canvas, opts = {}) {
     previewScene,
     playClip,
     stopClipPlayback,
+    applyHandPose: applyHandPoseToRig,
     resetCamera: () => {
       camera.alpha = -Math.PI / 2.35;
       camera.beta = Math.PI / 3.1;

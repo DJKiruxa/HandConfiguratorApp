@@ -134,8 +134,11 @@ function main() {
   wireDashboardUI(dash);
   wireTheme();
 
-  const recipe = new DashboardRecipe();
+  const recipe = new DashboardRecipe({
+    onHandPoseChanged: (handPose) => dash?.applyHandPose?.(handPose),
+  });
   recipe.init();
+  dash?.applyHandPose?.(recipe.state?.handPose);
 
   wireShortcuts(recipe);
 

@@ -41,52 +41,6 @@
         </div>
       </div>
 
-      <div class="card card--compact" id="fingerPanel">
-        <div class="card-header">
-          <div>
-            <div class="card-meta">поза</div>
-            <div class="card-title">Сгиб пальцев</div>
-          </div>
-          <span class="pill">0–100%</span>
-        </div>
-        <p class="card-hint card-hint--tight">Угол/ход условно в % → в <code>pipeline.handPose</code> в экспорте.</p>
-        <div class="finger-list" id="fingerList">
-          <label class="finger-row" data-finger-name="большой">
-            <span class="finger-idx">1</span>
-            <span class="finger-label">большой</span>
-            <span class="finger-out">0</span>
-            <input id="f0" class="finger-range" type="range" min="0" max="100" value="0" data-finger="0" />
-          </label>
-          <label class="finger-row" data-finger-name="указат.">
-            <span class="finger-idx">2</span>
-            <span class="finger-label">указат.</span>
-            <span class="finger-out">0</span>
-            <input id="f1" class="finger-range" type="range" min="0" max="100" value="0" data-finger="1" />
-          </label>
-          <label class="finger-row" data-finger-name="средний">
-            <span class="finger-idx">3</span>
-            <span class="finger-label">средний</span>
-            <span class="finger-out">0</span>
-            <input id="f2" class="finger-range" type="range" min="0" max="100" value="0" data-finger="2" />
-          </label>
-          <label class="finger-row" data-finger-name="безым.">
-            <span class="finger-idx">4</span>
-            <span class="finger-label">безым.</span>
-            <span class="finger-out">0</span>
-            <input id="f3" class="finger-range" type="range" min="0" max="100" value="0" data-finger="3" />
-          </label>
-          <label class="finger-row" data-finger-name="мизинец">
-            <span class="finger-idx">5</span>
-            <span class="finger-label">мизинец</span>
-            <span class="finger-out">0</span>
-            <input id="f4" class="finger-range" type="range" min="0" max="100" value="0" data-finger="4" />
-          </label>
-        </div>
-        <div class="sliders-actions sliders-actions--tight">
-          <button type="button" class="btn" data-hand-action="pose-reset" title="Все в ноль">сброс 0</button>
-        </div>
-      </div>
-
       <div class="card card--compact hand-json-card">
         <div class="card-header">
           <div>
@@ -125,6 +79,103 @@
     </section>
 
     <aside class="dash-col dash-right">
+      <div class="card card--compact pose-card" id="fingerPanel">
+        <div class="card-header">
+          <div>
+            <div class="card-meta">поза</div>
+            <div class="card-title">Сгиб пальцев</div>
+          </div>
+          <span class="pill">-100–100%</span>
+        </div>
+        <p class="card-hint card-hint--tight">Угол/ход условно в % → в <code>pipeline.handPose</code> в экспорте.</p>
+        <div class="finger-list" id="fingerList">
+          <label class="finger-row" data-finger-name="большой">
+            <span class="finger-idx">1</span>
+            <span class="finger-label">большой</span>
+            <span class="finger-out">0</span>
+            <input id="f0" class="finger-range" type="range" min="-100" max="100" value="0" data-finger="0" />
+          </label>
+          <label class="finger-row" data-finger-name="указат.">
+            <span class="finger-idx">2</span>
+            <span class="finger-label">указат.</span>
+            <span class="finger-out">0</span>
+            <input id="f1" class="finger-range" type="range" min="-100" max="100" value="0" data-finger="1" />
+          </label>
+          <label class="finger-row" data-finger-name="средний">
+            <span class="finger-idx">3</span>
+            <span class="finger-label">средний</span>
+            <span class="finger-out">0</span>
+            <input id="f2" class="finger-range" type="range" min="-100" max="100" value="0" data-finger="2" />
+          </label>
+          <label class="finger-row" data-finger-name="безым.">
+            <span class="finger-idx">4</span>
+            <span class="finger-label">безым.</span>
+            <span class="finger-out">0</span>
+            <input id="f3" class="finger-range" type="range" min="-100" max="100" value="0" data-finger="3" />
+          </label>
+          <label class="finger-row" data-finger-name="мизинец">
+            <span class="finger-idx">5</span>
+            <span class="finger-label">мизинец</span>
+            <span class="finger-out">0</span>
+            <input id="f4" class="finger-range" type="range" min="-100" max="100" value="0" data-finger="4" />
+          </label>
+        </div>
+        <div class="phalange-space" aria-label="заготовка под фаланги">
+          <section class="phalange-group">
+            <div class="phalange-title">Средние фаланги</div>
+            <div class="phalange-grid">
+              <label class="phalange-row">
+                <span class="phalange-label">указат.</span>
+                <span class="phalange-out">0</span>
+                <input id="hm0" class="phalange-range" type="range" min="-100" max="100" value="0" data-phalange-type="middle" data-phalange="0" />
+              </label>
+              <label class="phalange-row">
+                <span class="phalange-label">средний</span>
+                <span class="phalange-out">0</span>
+                <input id="hm1" class="phalange-range" type="range" min="-100" max="100" value="0" data-phalange-type="middle" data-phalange="1" />
+              </label>
+              <label class="phalange-row">
+                <span class="phalange-label">безым.</span>
+                <span class="phalange-out">0</span>
+                <input id="hm2" class="phalange-range" type="range" min="-100" max="100" value="0" data-phalange-type="middle" data-phalange="2" />
+              </label>
+              <label class="phalange-row">
+                <span class="phalange-label">мизинец</span>
+                <span class="phalange-out">0</span>
+                <input id="hm3" class="phalange-range" type="range" min="-100" max="100" value="0" data-phalange-type="middle" data-phalange="3" />
+              </label>
+            </div>
+          </section>
+          <section class="phalange-group">
+            <div class="phalange-title">Проксимальные фаланги</div>
+            <div class="phalange-grid">
+              <label class="phalange-row">
+                <span class="phalange-label">указат.</span>
+                <span class="phalange-out">0</span>
+                <input id="hp0" class="phalange-range" type="range" min="-100" max="100" value="0" data-phalange-type="proximal" data-phalange="0" />
+              </label>
+              <label class="phalange-row">
+                <span class="phalange-label">средний</span>
+                <span class="phalange-out">0</span>
+                <input id="hp1" class="phalange-range" type="range" min="-100" max="100" value="0" data-phalange-type="proximal" data-phalange="1" />
+              </label>
+              <label class="phalange-row">
+                <span class="phalange-label">безым.</span>
+                <span class="phalange-out">0</span>
+                <input id="hp2" class="phalange-range" type="range" min="-100" max="100" value="0" data-phalange-type="proximal" data-phalange="2" />
+              </label>
+              <label class="phalange-row">
+                <span class="phalange-label">мизинец</span>
+                <span class="phalange-out">0</span>
+                <input id="hp3" class="phalange-range" type="range" min="-100" max="100" value="0" data-phalange-type="proximal" data-phalange="3" />
+              </label>
+            </div>
+          </section>
+        </div>
+        <div class="sliders-actions sliders-actions--tight">
+          <button type="button" class="btn" data-hand-action="pose-reset" title="Все в ноль">сброс 0</button>
+        </div>
+      </div>
       <div class="card card--compact card--export">
         <div class="card-header">
           <div>

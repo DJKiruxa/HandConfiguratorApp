@@ -138,9 +138,9 @@ html[data-theme="pink"] {
 @media (min-width: 3200px) { html { font-size: 24px; } }
 
 /* Плавная смена темы: класс .theme-transitioning вешается в theme.js */
-.theme-transitioning *:not(input):not(textarea):not(kbd):not(.shortcut-kbd):not(.finger-range),
-.theme-transitioning *:not(input):not(textarea):not(kbd):not(.shortcut-kbd):not(.finger-range)::before,
-.theme-transitioning *:not(input):not(textarea):not(kbd):not(.shortcut-kbd):not(.finger-range)::after {
+.theme-transitioning *:not(input):not(textarea):not(kbd):not(.shortcut-kbd):not(.finger-range):not(.phalange-range),
+.theme-transitioning *:not(input):not(textarea):not(kbd):not(.shortcut-kbd):not(.finger-range):not(.phalange-range)::before,
+.theme-transitioning *:not(input):not(textarea):not(kbd):not(.shortcut-kbd):not(.finger-range):not(.phalange-range)::after {
   transition:
     background-color var(--theme-speed) ease,
     background var(--theme-speed) ease,
@@ -157,7 +157,8 @@ html[data-theme="pink"] {
 .theme-transitioning textarea,
 .theme-transitioning kbd,
 .theme-transitioning .shortcut-kbd,
-.theme-transitioning .finger-range {
+.theme-transitioning .finger-range,
+.theme-transitioning .phalange-range {
   transition: none !important;
   animation: none !important;
 }
@@ -545,7 +546,7 @@ body::before {
 .dash-right {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 6px;
   min-height: 0;
   overflow: hidden;
   padding-right: 2px;
@@ -951,7 +952,7 @@ html[data-theme="light"] .side-shortcuts {
   background: #fff;
 }
 
-/* Заготовка: только 5 пальцев */
+/* Заготовка: 5 пальцев + место под фаланги */
 .finger-list {
   display: flex;
   flex-direction: column;
@@ -1010,6 +1011,84 @@ html[data-theme="light"] .side-shortcuts {
 }
 
 #fingerPanel { flex-shrink: 0; }
+
+#fingerPanel.pose-card {
+  flex: 1 1 50%;
+  min-height: 0;
+  overflow: auto;
+}
+
+.pose-card .sliders-actions {
+  flex-shrink: 0;
+}
+
+.phalange-space {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  min-height: 0;
+}
+
+.phalange-group {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 6px;
+  background: color-mix(in srgb, var(--bg3) 45%, transparent);
+}
+
+.phalange-title {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text3);
+  margin-bottom: 5px;
+}
+
+.phalange-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.phalange-row {
+  display: grid;
+  grid-template-columns: 1fr 24px;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 3px 6px;
+  min-height: 42px;
+  padding: 5px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.phalange-label,
+.phalange-out {
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.phalange-label {
+  color: var(--text2);
+  min-width: 0;
+}
+
+.phalange-out {
+  color: var(--accent);
+  text-align: right;
+}
+
+.phalange-range {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 4px;
+  margin: 0;
+}
+
+.phalange-range::-webkit-slider-thumb {
+  width: 12px;
+  height: 12px;
+}
 
 .scene-area {
   flex: 1;
@@ -1228,9 +1307,9 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .recipe-statline--tight { font-size: 9px; }
 .card--export { min-height: 0; }
 
-/* Экспорт: JSON на всю высоту правой колонки */
+/* Экспорт: JSON занимает нижнюю половину правой колонки */
 .dash-right .card--export {
-  flex: 1 1 0;
+  flex: 0 1 50%;
   min-height: 0;
   display: flex;
   flex-direction: column;

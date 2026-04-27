@@ -8,6 +8,8 @@ export const EVENTS = {
   TOAST: 'babylon-toast',
   THEME_CHANGED: 'babylon-theme-changed',
   RECIPE_CHANGED: 'babylon-recipe-changed',
+  /** { handPose } — live-состояние позы руки, включая фаланги. */
+  HAND_POSE_CHANGED: 'babylon-hand-pose-changed',
   /** { index: 0..4, value: 0..100 } — заготовка под кинематику пальцев */
   FINGER_VALUE: 'babylon-finger-value',
 };

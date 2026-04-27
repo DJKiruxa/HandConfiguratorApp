@@ -9,10 +9,8 @@
  */
 import { on, EVENTS } from './eventBus.js';
 
-const BASE_TICK_MS = 140;
-const MIN_TICK_MS = 60;
-const SPEEDUP_EVERY = 5;
-const TARGET_CELL = 24;
+const BASE_TICK_MS = 220;
+const TARGET_CELL = 64;
 const MIN_COLS = 7;
 const MIN_ROWS = 7;
 
@@ -250,9 +248,6 @@ function createInstance(root) {
     snake.unshift(nh);
     if (willGrow) {
       score += 1;
-      if (score > 0 && score % SPEEDUP_EVERY === 0) {
-        tickMs = Math.max(MIN_TICK_MS, Math.round(tickMs * 0.9));
-      }
       placeFood();
     } else {
       snake.pop();
@@ -467,10 +462,9 @@ function createInstance(root) {
   }
 
   function drawSnake(progress) {
-    const path = getBodyPath(progress);
     const pts = getBodyPoints(progress);
     const tubeW = Math.max(6, cell * 0.78);
-    drawTubeFromPath(path, snake.length, tubeW, palette.accent);
+    strokeTube(pts, tubeW, palette.accent);
 
     // Use direction interpolation for stable turning animation.
     const dx = prevDir.x + (dir.x - prevDir.x) * progress;

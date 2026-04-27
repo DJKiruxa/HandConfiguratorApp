@@ -1,5 +1,5 @@
 import { clamp, downloadText } from './utils.js';
-import { defaultHandPose, parseHandPoseFromJson } from './handPose.js';
+import { defaultHandPose, parseHandPosePayloadFromJson } from './handPose.js';
 import { EVENTS, emit, on } from './eventBus.js';
 import { toast } from './toast.js';
 
@@ -14,8 +14,9 @@ function defaultPayload() {
 }
 
 export class DashboardRecipe {
-  constructor() {
+  constructor(opts = {}) {
     this.state = null;
+    this.onHandPoseChanged = opts.onHandPoseChanged || null;
     this.history = [];
     this.future = [];
     this.MAX_HISTORY = 50;
@@ -38,7 +39,17 @@ export class DashboardRecipe {
     if (data.handPose?.values?.length === 5) {
       for (let i = 0; i < 5; i++) {
         const v = Number(data.handPose.values[i]);
-        out.handPose.values[i] = Number.isFinite(v) ? clamp(v, 0, 100) : 0;
+        out.handPose.values[i] = Number.isFinite(v) ? clamp(v, -100, 100) : 0;
+      }
+    }
+    const phalanges = data.handPose?.phalanges;
+    if (phalanges && typeof phalanges === 'object') {
+      for (const type of ['middle', 'proximal']) {
+        if (!Array.isArray(phalanges[type])) continue;
+        for (let i = 0; i < 4; i++) {
+          const v = Number(phalanges[type][i]);
+          out.handPose.phalanges[type][i] = Number.isFinite(v) ? clamp(v, -100, 100) : 0;
+        }
       }
     }
     return out;
@@ -73,12 +84,26 @@ export class DashboardRecipe {
   save() {
     localStorage.setItem(DASHBOARD_RECIPE_KEY, JSON.stringify(this.state));
     emit(EVENTS.RECIPE_CHANGED, { state: this.state });
+    this.notifyHandPoseChanged();
+  }
+
+  notifyHandPoseChanged() {
+    const handPose = structuredClone(this.state.handPose);
+    this.onHandPoseChanged?.(handPose);
+    emit(EVENTS.HAND_POSE_CHANGED, { handPose });
   }
 
   setFingerValue(index, value) {
     if (!this.state?.handPose?.values) return;
     const i = clamp(Number(index), 0, 4);
-    this.state.handPose.values[i] = clamp(Number(value), 0, 100);
+    this.state.handPose.values[i] = clamp(Number(value), -100, 100);
+  }
+
+  setPhalangeValue(type, index, value) {
+    const arr = this.state?.handPose?.phalanges?.[type];
+    if (!arr) return;
+    const i = clamp(Number(index), 0, 3);
+    arr[i] = clamp(Number(value), -100, 100);
   }
 
   resetHandPose() {
@@ -86,6 +111,7 @@ export class DashboardRecipe {
     this.state.handPose = defaultHandPose();
     this.save();
     this.renderHandPose();
+    this.renderPhalanges();
     this.updateOutput('поза: сброс');
     emit(EVENTS.FINGER_VALUE, { all: this.state.handPose.values.slice() });
     toast('пальцы в 0%');
@@ -95,12 +121,24 @@ export class DashboardRecipe {
     if (!Array.isArray(values) || values.length < 5) return false;
     this.pushHistory();
     for (let i = 0; i < 5; i++) {
-      this.state.handPose.values[i] = clamp(Number(values[i]), 0, 100);
+        this.state.handPose.values[i] = clamp(Number(values[i]), -100, 100);
     }
     this.save();
     this.renderHandPose();
     this.updateOutput('поза из JSON');
     this.state.handPose.values.forEach((v, j) => emit(EVENTS.FINGER_VALUE, { index: j, value: v }));
+    toast('поза применена', { type: 'success' });
+    return true;
+  }
+
+  applyHandPoseFromPayload(handPose) {
+    if (!handPose?.values) return false;
+    this.pushHistory();
+    this.state.handPose = this.merge({ handPose }, defaultPayload()).handPose;
+    this.save();
+    this.renderHandPose();
+    this.renderPhalanges();
+    this.updateOutput('поза из JSON');
     toast('поза применена', { type: 'success' });
     return true;
   }
@@ -152,8 +190,23 @@ export class DashboardRecipe {
     }
   }
 
+  renderPhalanges() {
+    for (const [type, prefix] of [['middle', 'hm'], ['proximal', 'hp']]) {
+      const values = this.state.handPose.phalanges?.[type] || [];
+      for (let i = 0; i < 4; i++) {
+        const input = document.getElementById(`${prefix}${i}`);
+        const row = input?.closest('.phalange-row');
+        const out = row?.querySelector('.phalange-out');
+        const v = values[i] ?? 0;
+        if (input) input.value = String(v);
+        if (out) out.textContent = String(v);
+      }
+    }
+  }
+
   renderAll() {
     this.renderHandPose();
+    this.renderPhalanges();
     this.updateOutput('готово');
   }
 
@@ -167,6 +220,7 @@ export class DashboardRecipe {
         this.setFingerValue(i, input.value);
         if (out) out.textContent = String(this.state.handPose.values[i]);
         emit(EVENTS.FINGER_VALUE, { index: i, value: this.state.handPose.values[i] });
+        this.notifyHandPoseChanged();
       });
       input.addEventListener('change', () => {
         this.pushHistory();
@@ -174,6 +228,25 @@ export class DashboardRecipe {
         this.updateOutput('поза');
       });
     }
+  }
+
+  bindPhalanges() {
+    document.querySelectorAll('.phalange-range').forEach((input) => {
+      const row = input.closest('.phalange-row');
+      const out = row?.querySelector('.phalange-out');
+      input.addEventListener('input', () => {
+        this.setPhalangeValue(input.dataset.phalangeType, input.dataset.phalange, input.value);
+        const values = this.state.handPose.phalanges?.[input.dataset.phalangeType];
+        const v = values?.[Number(input.dataset.phalange)] ?? 0;
+        if (out) out.textContent = String(v);
+        this.notifyHandPoseChanged();
+      });
+      input.addEventListener('change', () => {
+        this.pushHistory();
+        this.save();
+        this.updateOutput('фаланги');
+      });
+    });
   }
 
   bind() {
@@ -186,9 +259,9 @@ export class DashboardRecipe {
       if (!f) return;
       try {
         const text = await f.text();
-        const vals = parseHandPoseFromJson(text);
-        if (vals) this.applyHandPoseFromValues(vals);
-        else toast('В JSON нет pipeline.handPose.values (5×0–100)', { type: 'warn' });
+        const handPose = parseHandPosePayloadFromJson(text);
+        if (handPose) this.applyHandPoseFromPayload(handPose);
+        else toast('В JSON нет pipeline.handPose.values (5 чисел -100..100)', { type: 'warn' });
       } catch (err) {
         console.warn(err);
         toast('не удалось прочитать', { type: 'error' });
@@ -218,6 +291,7 @@ export class DashboardRecipe {
   init() {
     this.load();
     this.bindFingers();
+    this.bindPhalanges();
     this.bind();
     this.renderAll();
   }
