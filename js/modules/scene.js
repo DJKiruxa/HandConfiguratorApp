@@ -128,6 +128,8 @@ export function createDashboardScene(canvas, opts = {}) {
   let clipRunId = 0;
   let dashClipRenderObs = null;
   let activeHandPose = readStoredHandPose();
+  let armAnimationGroups = [];
+  let activeArmAnimationIndex = -1;
   let phalangeRig = [];
   let metacarpalRig = [];
   let combinedRigByBone = new Map();
@@ -219,7 +221,29 @@ export function createDashboardScene(canvas, opts = {}) {
   function stopClipPlayback() {
     clipRunId += 1;
     if (dashClipRenderObs) { scene.onBeforeRenderObservable.remove(dashClipRenderObs); dashClipRenderObs = null; }
+    stopArmAnimations();
     applyZoomLimits();
+  }
+
+  function notifyArmAnimationsChanged() {
+    opts.onAnimationsChanged?.(armAnimationGroups, activeArmAnimationIndex);
+  }
+
+  function stopArmAnimations() {
+    armAnimationGroups.forEach((group) => group.stop());
+    activeArmAnimationIndex = -1;
+    notifyArmAnimationsChanged();
+  }
+
+  function playArmAnimation(index) {
+    const anim = armAnimationGroups[index];
+    if (!anim) return false;
+    armAnimationGroups.forEach((group) => group.stop());
+    anim.reset();
+    anim.start(false, 1.0, anim.from, anim.to, false);
+    activeArmAnimationIndex = index;
+    notifyArmAnimationsChanged();
+    return true;
   }
 
   function capturePhalangeRig(skeletons) {
@@ -336,6 +360,9 @@ export function createDashboardScene(canvas, opts = {}) {
   async function reloadAssemblyFromStorage() {
     showLoading(true);
     disposeContent();
+    armAnimationGroups = [];
+    activeArmAnimationIndex = -1;
+    notifyArmAnimationsChanged();
     try {
       const raw = localStorage.getItem(ASSEMBLY_STORAGE_KEY);
       if (raw) lastAssemblyData = JSON.parse(raw);
@@ -349,6 +376,9 @@ export function createDashboardScene(canvas, opts = {}) {
       const result = await BABYLON.SceneLoader.ImportMeshAsync('', ARM_DIR, ARM_GLB, scene);
       scene.stopAllAnimations();
       result.animationGroups?.forEach((group) => group.stop());
+      armAnimationGroups = result.animationGroups || [];
+      activeArmAnimationIndex = -1;
+      notifyArmAnimationsChanged();
       result.skeletons?.forEach((sk) => scene.stopAnimation(sk));
       result.transformNodes?.forEach((node) => scene.stopAnimation(node));
       result.meshes?.forEach((mesh) => scene.stopAnimation(mesh));
@@ -405,6 +435,8 @@ export function createDashboardScene(canvas, opts = {}) {
     previewScene,
     playClip,
     stopClipPlayback,
+    playArmAnimation,
+    stopArmAnimations,
     applyHandPose: applyHandPoseToRig,
     resetCamera: () => {
       camera.alpha = -Math.PI / 2.35;

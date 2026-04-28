@@ -72,6 +72,36 @@ function wireDashboardUI(dash) {
       toast('Не удалось прочитать JSON', { type: 'error' });
     }
   });
+
+  const armAnimationList = document.getElementById('armAnimationList');
+  armAnimationList?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-arm-animation]');
+    if (!btn) return;
+    const index = Number(btn.dataset.armAnimation);
+    if (!Number.isInteger(index)) return;
+    if (dash?.playArmAnimation(index)) toast(`анимация: ${btn.textContent.trim()}`);
+  });
+}
+
+function renderArmAnimationList(groups = [], activeIndex = -1) {
+  const list = document.getElementById('armAnimationList');
+  if (!list) return;
+  list.replaceChildren();
+  if (!groups.length) {
+    const empty = document.createElement('div');
+    empty.className = 'animation-empty';
+    empty.textContent = 'анимаций нет';
+    list.append(empty);
+    return;
+  }
+  groups.forEach((group, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `animation-item${index === activeIndex ? ' active' : ''}`;
+    button.dataset.armAnimation = String(index);
+    button.textContent = index === 0 ? 'В Г Ы' : (group?.name || `Анимация ${index + 1}`);
+    list.append(button);
+  });
 }
 
 function wireTheme() {
@@ -155,6 +185,7 @@ function main() {
           loadingEl?.classList.toggle('active', !!b);
           if (loadingEl) loadingEl.setAttribute('aria-busy', b ? 'true' : 'false');
         },
+        onAnimationsChanged: renderArmAnimationList,
       })
     : null;
 
