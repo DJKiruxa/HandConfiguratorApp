@@ -1152,7 +1152,7 @@ html[data-theme="light"] .side-shortcuts {
 #fingerPanel { flex-shrink: 0; }
 
 #fingerPanel.pose-card {
-  flex: 1 1 50%;
+  flex: 1 1 62%;
   min-height: 0;
   overflow: auto;
 }
@@ -1508,9 +1508,9 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .recipe-statline--tight { font-size: 9px; }
 .card--export { min-height: 0; }
 
-/* Экспорт: JSON занимает нижнюю половину правой колонки */
+/* Экспорт держим ниже, чтобы в панели позы помещалась кнопка сброса. */
 .dash-right .card--export {
-  flex: 0 1 50%;
+  flex: 0 1 38%;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -1821,11 +1821,11 @@ textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent
   }
 
   #fingerPanel.pose-card {
-    flex-basis: 56%;
+    flex-basis: 68%;
   }
 
   .dash-right .card--export {
-    flex-basis: 44%;
+    flex-basis: 32%;
   }
 }
 

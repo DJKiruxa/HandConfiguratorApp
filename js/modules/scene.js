@@ -14,7 +14,7 @@ const ARM_DIR = 'img/models/';
 const MAX_PHALANGE_BEND_RAD = Math.PI / 2;
 const MAX_METACARPAL_BEND_RAD = Math.PI / 2;
 const PHALANGE_BONES = [
-  { type: 'middle', index: 0, name: 'Bone.019' },
+  { type: 'proximal', index: 0, name: 'Bone.020' },
   { type: 'proximal', index: 4, name: 'Bone.005' },
   { type: 'middle', index: 4, name: 'Bone.006' },
   { type: 'proximal', index: 3, name: 'Bone.008' },

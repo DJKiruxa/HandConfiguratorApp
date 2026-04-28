@@ -2,7 +2,9 @@ import { clamp, downloadText } from './utils.js';
 import {
   METACARPAL_KEYS,
   PHALANGE_FINGER_KEYS,
+  PHALANGE_TYPES,
   buildCompactHandPose,
+  clampPhalangeValue,
   defaultHandPose,
   normalizeMetacarpalValues,
   normalizePhalangeValues,
@@ -52,8 +54,8 @@ export class DashboardRecipe {
     }
     const phalanges = data.handPose?.phalanges;
     if (phalanges && typeof phalanges === 'object') {
-      for (const type of ['middle', 'proximal']) {
-        const values = normalizePhalangeValues(phalanges[type], phalanges.keys);
+      for (const type of PHALANGE_TYPES) {
+        const values = normalizePhalangeValues(phalanges[type], phalanges.keys, type);
         if (values) out.handPose.phalanges[type] = values;
       }
     }
@@ -113,7 +115,7 @@ export class DashboardRecipe {
     const arr = this.state?.handPose?.phalanges?.[type];
     if (!arr) return;
     const i = clamp(Number(index), 0, PHALANGE_FINGER_KEYS.length - 1);
-    arr[i] = clamp(Number(value), -100, 100);
+    arr[i] = clampPhalangeValue(type, value);
   }
 
   setMetacarpalValue(index, value) {

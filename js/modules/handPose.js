@@ -9,6 +9,12 @@ const LEGACY_PHALANGE_FINGER_KEYS = ['index', 'middle', 'ring', 'pinky'];
 export const METACARPAL_KEYS = ['pinky', 'ring', 'pinkyRing', 'thumb'];
 const LEGACY_METACARPAL_KEYS = ['pinky', 'ring', 'pinkyRing'];
 const COMPACT_HAND_POSE_SCHEMA = 'babylon.handPose.v3';
+export const PHALANGE_TYPES = ['middle', 'proximal'];
+
+export function clampPhalangeValue(type, value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(-100, Math.min(100, n)) : 0;
+}
 
 export function defaultHandPose() {
   return {
@@ -63,8 +69,8 @@ export function parseHandPosePayloadFromJson(raw) {
 
   const phalanges = pose.phalanges;
   if (phalanges && typeof phalanges === 'object') {
-    for (const type of ['middle', 'proximal']) {
-      const values = normalizePhalangeValues(phalanges[type], phalanges.keys);
+    for (const type of PHALANGE_TYPES) {
+      const values = normalizePhalangeValues(phalanges[type], phalanges.keys, type);
       if (values) out.phalanges[type] = values;
     }
   }
@@ -86,7 +92,7 @@ export function buildCompactHandPose(handPose) {
     fingers: valuesToObject(normalized.values, FINGER_KEYS),
     phalanges: {
       middle: valuesToObject(normalized.phalanges.middle, PHALANGE_FINGER_KEYS),
-      proximal: valuesToObject(normalized.phalanges.proximal, LEGACY_PHALANGE_FINGER_KEYS),
+      proximal: valuesToObject(normalized.phalanges.proximal, PHALANGE_FINGER_KEYS),
     },
     metacarpals: valuesToObject(normalized.metacarpals.values, METACARPAL_KEYS),
   };
@@ -112,21 +118,19 @@ function parseCompactHandPose(obj) {
   return out;
 }
 
-function valuesToObject(values, keys) {
+function valuesToObject(values, keys, type = '') {
   return keys.reduce((acc, key) => {
     const index = keyIndex(key);
     const sourceIndex = index >= 0 && values.length === PHALANGE_FINGER_KEYS.length ? index : keys.indexOf(key);
-    const n = Number(values[sourceIndex] ?? 0);
-    acc[key] = Number.isFinite(n) ? Math.max(-100, Math.min(100, n)) : 0;
+    acc[key] = clampPhalangeValue(type, values[sourceIndex] ?? 0);
     return acc;
   }, {});
 }
 
-function objectToValues(obj, keys) {
+function objectToValues(obj, keys, type = '') {
   if (!obj || typeof obj !== 'object') return null;
   const out = keys.map((key) => {
-    const n = Number(obj[key] ?? 0);
-    return Number.isFinite(n) ? Math.max(-100, Math.min(100, n)) : 0;
+    return clampPhalangeValue(type, obj[key] ?? 0);
   });
   return out;
 }
@@ -147,7 +151,7 @@ function normalizeRange(arr, length) {
   });
 }
 
-export function normalizePhalangeValues(arr, keys) {
+export function normalizePhalangeValues(arr, keys, type = '') {
   if (!Array.isArray(arr)) return null;
   const sourceKeys = Array.isArray(keys) && keys.length
     ? keys
@@ -158,8 +162,7 @@ export function normalizePhalangeValues(arr, keys) {
   sourceKeys.slice(0, arr.length).forEach((key, i) => {
     const targetIndex = PHALANGE_FINGER_KEYS.indexOf(key);
     if (targetIndex < 0) return;
-    const n = Number(arr[i]);
-    out[targetIndex] = Number.isFinite(n) ? Math.max(-100, Math.min(100, n)) : 0;
+    out[targetIndex] = clampPhalangeValue(type, arr[i]);
   });
   return out;
 }
