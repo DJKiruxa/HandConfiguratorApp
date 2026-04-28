@@ -48,7 +48,7 @@
             <div class="card-title">JSON позы</div>
           </div>
         </div>
-        <p class="card-hint card-hint--tight">Полный экспорт или <code>pipeline.handPose.values</code> (5 чисел).</p>
+        <p class="card-hint card-hint--tight">Компактный JSON позы или старый <code>pipeline.handPose</code>.</p>
         <div class="sliders-actions sliders-actions--tight" style="margin-top:4px">
           <label class="btn btn-block">загрузить .json
             <input id="handPoseJsonInput" type="file" accept=".json,application/json" class="sr-only">
@@ -86,7 +86,7 @@
           </div>
           <span class="pill">-100–100%</span>
         </div>
-        <p class="card-hint card-hint--tight">Угол/ход условно в % → в <code>pipeline.handPose</code> в экспорте.</p>
+        <p class="card-hint card-hint--tight">Угол/ход условно в % → компактный JSON позы в экспорте.</p>
         <div class="finger-list" id="fingerList">
           <label class="finger-row" data-finger-name="большой">
             <span class="finger-idx">1</span>
@@ -213,7 +213,7 @@
         <div class="card-header">
           <div>
             <div class="card-meta">экспорт</div>
-            <div class="card-title">Полный JSON</div>
+            <div class="card-title">JSON позы</div>
           </div>
           <div id="recipeStats" class="recipe-statline" aria-live="polite">—</div>
         </div>

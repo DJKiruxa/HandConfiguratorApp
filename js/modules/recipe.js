@@ -2,6 +2,7 @@ import { clamp, downloadText } from './utils.js';
 import {
   METACARPAL_KEYS,
   PHALANGE_FINGER_KEYS,
+  buildCompactHandPose,
   defaultHandPose,
   normalizeMetacarpalValues,
   normalizePhalangeValues,
@@ -162,20 +163,7 @@ export class DashboardRecipe {
   }
 
   buildExport() {
-    let assembly = null;
-    try {
-      const raw = localStorage.getItem(ASSEMBLY_STORAGE_KEY);
-      if (raw) assembly = JSON.parse(raw);
-    } catch (_) {}
-    return {
-      exportedAt: new Date().toISOString(),
-      schema: 'babylon.hand-pipeline+v2',
-      assembly,
-      pipeline: {
-        version: this.state.version,
-        handPose: structuredClone(this.state.handPose),
-      },
-    };
+    return buildCompactHandPose(this.state.handPose);
   }
 
   computeStats() {

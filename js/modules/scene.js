@@ -25,8 +25,8 @@ const PHALANGE_BONES = [
   { type: 'middle', index: 1, name: 'Bone.016' },
 ];
 const METACARPAL_BONES = [
-  { key: 'pinky', name: 'Bone.003' },
-  { key: 'ring', name: 'Bone.007', comboFollow: true },
+  { key: 'pinky', name: 'Bone.003', combo: true },
+  { key: 'ring', name: 'Bone.007', combo: true, comboFollow: true },
   { key: 'thumb', name: 'Bone.018', axis: 'z' },
 ];
 const METACARPAL_COMBO_KEY = 'pinkyRing';
@@ -287,7 +287,9 @@ export function createDashboardScene(canvas, opts = {}) {
     for (const cfg of metacarpalRig) {
       const ownPercent = getMetacarpalPercent(activeHandPose, cfg.key);
       const comboBasePercent = getMetacarpalPercent(activeHandPose, METACARPAL_COMBO_KEY);
-      const comboPercent = cfg.comboFollow ? followMetacarpalCombo(comboBasePercent) : comboBasePercent;
+      const comboPercent = cfg.combo
+        ? (cfg.comboFollow ? followMetacarpalCombo(comboBasePercent) : comboBasePercent)
+        : 0;
       const percent = clamp(
         ownPercent + comboPercent,
         -100,
