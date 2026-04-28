@@ -5,6 +5,38 @@ import { EVENTS, on, emit } from './modules/eventBus.js';
 import { DashboardRecipe, ASSEMBLY_STORAGE_KEY } from './modules/recipe.js';
 import { createDashboardScene } from './modules/scene.js';
 
+const DESKTOP_DESIGN_VIEWPORT = { width: 2560, height: 1440 };
+
+function initViewportScale() {
+  const root = document.documentElement;
+  const body = document.body;
+  let raf = 0;
+
+  const applyScale = () => {
+    raf = 0;
+    const vw = window.innerWidth || DESKTOP_DESIGN_VIEWPORT.width;
+    const vh = window.innerHeight || DESKTOP_DESIGN_VIEWPORT.height;
+    const isDesktopLayout = vw > 1000 && vh > 700;
+    const rawScale = Math.min(vw / DESKTOP_DESIGN_VIEWPORT.width, vh / DESKTOP_DESIGN_VIEWPORT.height, 1);
+    const scale = isDesktopLayout ? Math.max(0.72, rawScale) : 1;
+    const scaled = scale < 0.995;
+
+    root.style.setProperty('--viewport-scale', scale.toFixed(4));
+    root.style.setProperty('--viewport-width', `${Math.round(vw / scale)}px`);
+    root.style.setProperty('--viewport-height', `${Math.round(vh / scale)}px`);
+    body?.classList.toggle('is-viewport-scaled', scaled);
+  };
+
+  const scheduleScale = () => {
+    if (raf) return;
+    raf = requestAnimationFrame(applyScale);
+  };
+
+  applyScale();
+  window.addEventListener('resize', scheduleScale, { passive: true });
+  window.addEventListener('orientationchange', scheduleScale, { passive: true });
+}
+
 function wireDashboardUI(dash) {
   document.querySelectorAll('[data-dash-action="reload-assembly"]').forEach((btn) =>
     btn.addEventListener('click', () => { dash?.reloadAssemblyFromStorage(); toast('сборка перезагружена'); }),
@@ -107,6 +139,7 @@ function wireShortcuts(recipe) {
 }
 
 function main() {
+  initViewportScale();
   initTheme();
   initToasts();
   initSnakeGame();

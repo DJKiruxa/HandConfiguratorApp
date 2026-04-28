@@ -1,7 +1,7 @@
 /**
- * Snake — Google-style. Mounts inside an existing element, paints on a canvas,
- * uses CSS variables for colors, supports keyboard, touch (D-pad), pause and
- * smooth interpolation between fixed logic ticks.
+ * Snake — Google-style. Hidden easter egg: type "game" on the dashboard.
+ * Mounts inside an existing element, paints on a canvas, uses CSS variables for
+ * colors, supports keyboard, touch (D-pad), pause and smooth interpolation.
  *
  * Public API:
  *   window.SnakeGame.mount(containerId)
@@ -13,6 +13,9 @@ const BASE_TICK_MS = 220;
 const TARGET_CELL = 64;
 const MIN_COLS = 7;
 const MIN_ROWS = 7;
+const EASTER_SEQUENCE = 'game';
+const EASTER_TAPS = 5;
+const EASTER_TAP_WINDOW_MS = 1200;
 
 function readPalette() {
   const cs = getComputedStyle(document.documentElement);
@@ -68,6 +71,7 @@ function opp(a, b) { return a.x + b.x === 0 && a.y + b.y === 0; }
 function snap05(v) { return Math.round(v * 2) / 2; }
 
 let active = null;
+let launcher = null;
 
 const SnakeGame = {
   mount(containerId) {
@@ -80,7 +84,94 @@ const SnakeGame = {
   destroy() {
     if (active) { active.destroy(); active = null; }
   },
+  openEasterEgg() {
+    SnakeGame.destroy();
+    const overlay = document.createElement('div');
+    overlay.className = 'snake-easter';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Пасхалка: змейка');
+    overlay.innerHTML = `
+      <div class="snake-easter__panel">
+        <div class="snake-easter__bar">
+          <span class="snake-easter__title">секретный режим</span>
+          <button type="button" class="snake-easter__close" aria-label="Закрыть">×</button>
+        </div>
+        <div class="card card--compact snake-card snake-card--easter" id="snakeGameRoot" tabindex="0" aria-label="Змейка"></div>
+        <p class="snake-easter__hint">Стрелки / WASD — движение, Space — старт / пауза, Esc — закрыть.</p>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const root = overlay.querySelector('#snakeGameRoot');
+    const close = () => {
+      SnakeGame.destroy();
+      overlay.remove();
+    };
+    const onOverlayKey = (e) => {
+      if (e.code !== 'Escape') return;
+      e.preventDefault();
+      e.stopPropagation();
+      close();
+    };
+    overlay.querySelector('.snake-easter__close')?.addEventListener('click', close);
+    overlay.addEventListener('mousedown', (e) => {
+      if (e.target === overlay) close();
+    });
+    overlay.addEventListener('keydown', onOverlayKey, true);
+    SnakeGame.mount(root);
+    requestAnimationFrame(() => root?.focus({ preventScroll: true }));
+    return true;
+  },
 };
+
+function isEditableKeyTarget(t) {
+  if (!t || t === document.body) return false;
+  const tag = (t.tagName || '').toLowerCase();
+  return tag === 'input' || tag === 'textarea' || tag === 'select' || t.isContentEditable;
+}
+
+function initEasterEggLauncher() {
+  if (launcher) return launcher;
+  let buffer = '';
+  let tapCount = 0;
+  let firstTapAt = 0;
+  const onSecretKey = (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey || isEditableKeyTarget(e.target)) return;
+    if (document.querySelector('.snake-easter')) return;
+    if (!/^[a-z]$/i.test(e.key)) return;
+
+    buffer = (buffer + e.key.toLowerCase()).slice(-EASTER_SEQUENCE.length);
+    if (buffer !== EASTER_SEQUENCE) return;
+    buffer = '';
+    SnakeGame.openEasterEgg();
+  };
+
+  const logo = document.querySelector('.logo');
+  const onSecretTap = () => {
+    if (document.querySelector('.snake-easter')) return;
+    const now = performance.now();
+    if (!firstTapAt || now - firstTapAt > EASTER_TAP_WINDOW_MS) {
+      firstTapAt = now;
+      tapCount = 0;
+    }
+
+    tapCount += 1;
+    if (tapCount < EASTER_TAPS) return;
+    firstTapAt = 0;
+    tapCount = 0;
+    SnakeGame.openEasterEgg();
+  };
+
+  window.addEventListener('keydown', onSecretKey, true);
+  logo?.addEventListener('pointerup', onSecretTap);
+  launcher = () => {
+    window.removeEventListener('keydown', onSecretKey, true);
+    logo?.removeEventListener('pointerup', onSecretTap);
+    launcher = null;
+  };
+  return launcher;
+}
 
 function createInstance(root) {
   root.innerHTML = '';
@@ -666,7 +757,7 @@ if (typeof window !== 'undefined') {
 }
 
 export function initSnakeGame() {
-  SnakeGame.mount('snakeGameRoot');
+  initEasterEggLauncher();
 }
 
 export default SnakeGame;

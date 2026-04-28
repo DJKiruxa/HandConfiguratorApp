@@ -54,6 +54,9 @@
   --card-pad: clamp(0.5rem, 0.42rem + 0.35vw, 0.875rem);
   --touch-hit: 2.75rem;
   --control-font: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  --viewport-scale: 1;
+  --viewport-width: 100vw;
+  --viewport-height: 100dvh;
 }
 
 html[data-theme="light"] {
@@ -217,11 +220,20 @@ html[data-theme="light"] body {
 body.app-body {
   min-height: 100%;
   height: 100%;
+  width: 100vw;
   max-height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   overscroll-behavior: none;
+}
+
+body.app-body.is-viewport-scaled .app-main {
+  flex: 0 0 auto;
+  width: var(--viewport-width);
+  height: var(--viewport-height);
+  transform: scale(var(--viewport-scale));
+  transform-origin: top left;
 }
 
 body::before {
@@ -465,11 +477,71 @@ body::before {
   padding-right: 2px;
 }
 
-.dash-left > .card:not(.snake-card) {
+.dash-left > .card {
   flex-shrink: 0;
 }
 
-/* Змейка: остаток высоты колонки, на всю ширину, без внутреннего скролла */
+/* Hidden snake easter egg */
+.snake-easter {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  background:
+    radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 34rem),
+    rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(10px);
+}
+
+.snake-easter__panel {
+  width: min(58rem, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.snake-easter__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.snake-easter__title {
+  color: var(--accent);
+}
+
+.snake-easter__close {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg2);
+  color: var(--text);
+  cursor: pointer;
+  font: 700 1.1rem/1 var(--sans);
+}
+
+.snake-easter__close:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.snake-easter__hint {
+  margin: 0;
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
 .snake-card {
   flex: 1 1 0;
   min-height: 0;
@@ -485,6 +557,14 @@ body::before {
   overflow: hidden;
   outline: none;
   position: relative;
+}
+
+.snake-card--easter {
+  flex: 0 0 auto;
+  height: clamp(22rem, 68vh, 44rem);
+  min-height: 22rem;
+  border-color: color-mix(in srgb, var(--accent) 44%, var(--border));
+  box-shadow: 0 1.5rem 5rem rgba(0, 0, 0, 0.36);
 }
 
 .snake-card:focus,
@@ -1342,6 +1422,10 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   .snake-card .snake-stage {
     min-height: 12rem;
   }
+
+  .snake-card--easter {
+    min-height: 18rem;
+  }
 }
 
 .sliders-actions { display: flex; gap: 8px; margin-top: 4px; }
@@ -1519,6 +1603,164 @@ textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent
   }
 }
 
+@media (max-width: 1920px), (max-height: 1080px) {
+  :root {
+    --app-pad: clamp(0.25rem, 0.16rem + 0.28vw, 0.5rem);
+    --app-gap: clamp(0.25rem, 0.14rem + 0.28vw, 0.5rem);
+    --panel-min: clamp(10rem, 13.5vw, 15rem);
+    --scene-min: clamp(16rem, 40vh, 34rem);
+    --card-pad: clamp(0.45rem, 0.34rem + 0.24vw, 0.7rem);
+    --touch-hit: 2.35rem;
+    --control-font: clamp(0.68rem, 0.62rem + 0.18vw, 0.78rem);
+    --grid-cell: 32px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns:
+      minmax(min(100%, 10rem), 0.78fr)
+      minmax(min(100%, 18rem), 1.72fr)
+      minmax(min(100%, 10rem), 0.86fr);
+  }
+
+  .card {
+    gap: 0.5rem;
+  }
+
+  .card--compact,
+  .card--toolbar {
+    gap: 0.25rem;
+  }
+
+  .side-shortcuts,
+  .shortcut-label,
+  .status-dot {
+    font-size: 0.625rem;
+  }
+
+  .shortcut-row {
+    grid-template-columns: minmax(3.4rem, auto) 1fr;
+    gap: 0 0.375rem;
+    padding: 0.25rem 0.45rem;
+  }
+
+  .shortcut-kbd {
+    min-width: 2rem;
+    min-height: 1.35rem;
+    font-size: 0.56rem;
+    padding: 0.1rem 0.3rem;
+  }
+
+  .shortcut-kbd--wide {
+    min-width: 3rem;
+    font-size: 0.5rem;
+  }
+
+  .logo-mark {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .logo-text,
+  .side-toolbar-brand .logo-text {
+    font-size: 0.7rem;
+  }
+
+  .card--compact .card-title,
+  .card-title {
+    font-size: 0.72rem;
+  }
+
+  .card-meta,
+  .card--compact .card-meta,
+  .card-hint,
+  .card-hint--tight,
+  .pill {
+    font-size: 0.55rem;
+  }
+
+  .finger-row {
+    grid-template-columns: 0.9rem 1fr 1.35rem;
+    gap: 0.1rem 0.35rem;
+    padding: 0.2rem 0;
+  }
+
+  .finger-idx,
+  .finger-out,
+  .phalange-title {
+    font-size: 0.55rem;
+  }
+
+  .finger-label,
+  .phalange-label,
+  .phalange-out {
+    font-size: 0.62rem;
+  }
+
+  .phalange-space {
+    gap: 0.3rem;
+  }
+
+  .phalange-group {
+    padding: 0.3rem;
+  }
+
+  .phalange-grid {
+    gap: 0.25rem;
+  }
+
+  .phalange-row {
+    min-height: 2.1rem;
+    padding: 0.25rem 0.35rem;
+  }
+
+  .scene-toolbar .btn {
+    min-width: var(--touch-hit);
+    min-height: var(--touch-hit);
+    padding: 0 0.6rem;
+    font-size: 0.9rem;
+  }
+
+  .dash-right .card--export .send-actions--export .btn,
+  .dash-right .card--export .send-actions .btn {
+    min-height: var(--touch-hit);
+    padding: 0.5rem 0.8rem;
+    font-size: 0.72rem;
+  }
+
+  .dash-right .card--export textarea#recipeOutput {
+    padding: 0.55rem 0.65rem;
+    font-size: 0.68rem;
+    line-height: 1.45;
+  }
+}
+
+@media (max-height: 900px) and (min-width: 1001px) {
+  :root {
+    --app-pad: 0.25rem;
+    --app-gap: 0.25rem;
+    --card-pad: 0.42rem;
+    --touch-hit: 2.1rem;
+  }
+
+  .card-hint,
+  .card-hint--tight {
+    line-height: 1.2;
+    margin-bottom: 0;
+  }
+
+  .scene-toolbar {
+    gap: 0.25rem;
+  }
+
+  #fingerPanel.pose-card {
+    flex-basis: 56%;
+  }
+
+  .dash-right .card--export {
+    flex-basis: 44%;
+  }
+}
+
 @media (max-width: 1000px) {
   body.app-body {
     height: auto;
@@ -1526,6 +1768,12 @@ textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: auto;
+  }
+
+  body.app-body.is-viewport-scaled .app-main {
+    width: auto;
+    height: auto;
+    transform: none;
   }
 
   .app-main {
@@ -1564,7 +1812,7 @@ textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent
     padding-right: 0;
   }
 
-  .snake-card {
+  .snake-card:not(.snake-card--easter) {
     flex: 0 0 auto;
     min-height: clamp(14rem, 34dvh, 24rem);
   }
@@ -1635,7 +1883,7 @@ textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent
     padding: 0.375rem 0.5rem;
   }
 
-  .snake-card {
+  .snake-card:not(.snake-card--easter) {
     min-height: clamp(13rem, 42dvh, 22rem);
   }
 }
