@@ -3,11 +3,14 @@ import {
   METACARPAL_KEYS,
   PHALANGE_FINGER_KEYS,
   PHALANGE_TYPES,
+  ROTATION_MECHANISM_KEYS,
   buildCompactHandPose,
   clampPhalangeValue,
+  clampRotationMechanismValue,
   defaultHandPose,
   normalizeMetacarpalValues,
   normalizePhalangeValues,
+  normalizeRotationMechanismValues,
   parseHandPosePayloadFromJson,
 } from './handPose.js';
 import { EVENTS, emit, on } from './eventBus.js';
@@ -64,6 +67,11 @@ export class DashboardRecipe {
       ? normalizeMetacarpalValues(metacarpals)
       : normalizeMetacarpalValues(metacarpals?.values, metacarpals?.keys);
     if (metacarpalValues) out.handPose.metacarpals.values = metacarpalValues;
+    const rotationMechanisms = data.handPose?.rotationMechanisms;
+    const rotationMechanismValues = Array.isArray(rotationMechanisms)
+      ? normalizeRotationMechanismValues(rotationMechanisms)
+      : normalizeRotationMechanismValues(rotationMechanisms?.values, rotationMechanisms?.keys);
+    if (rotationMechanismValues) out.handPose.rotationMechanisms.values = rotationMechanismValues;
     return out;
   }
 
@@ -115,7 +123,7 @@ export class DashboardRecipe {
     const arr = this.state?.handPose?.phalanges?.[type];
     if (!arr) return;
     const i = clamp(Number(index), 0, PHALANGE_FINGER_KEYS.length - 1);
-    arr[i] = clampPhalangeValue(type, value);
+    arr[i] = clampPhalangeValue(type, value, i);
   }
 
   setMetacarpalValue(index, value) {
@@ -125,6 +133,13 @@ export class DashboardRecipe {
     arr[i] = clamp(Number(value), -100, 100);
   }
 
+  setRotationMechanismValue(index, value) {
+    const arr = this.state?.handPose?.rotationMechanisms?.values;
+    if (!arr) return;
+    const i = clamp(Number(index), 0, ROTATION_MECHANISM_KEYS.length - 1);
+    arr[i] = clampRotationMechanismValue(ROTATION_MECHANISM_KEYS[i], value);
+  }
+
   resetHandPose() {
     this.pushHistory();
     this.state.handPose = defaultHandPose();
@@ -132,6 +147,7 @@ export class DashboardRecipe {
     this.renderHandPose();
     this.renderPhalanges();
     this.renderMetacarpals();
+    this.renderRotationMechanisms();
     this.updateOutput('поза: сброс');
     emit(EVENTS.FINGER_VALUE, { all: this.state.handPose.values.slice() });
     toast('пальцы в 0%');
@@ -159,6 +175,7 @@ export class DashboardRecipe {
     this.renderHandPose();
     this.renderPhalanges();
     this.renderMetacarpals();
+    this.renderRotationMechanisms();
     this.updateOutput('поза из JSON');
     toast('поза применена', { type: 'success' });
     return true;
@@ -224,10 +241,23 @@ export class DashboardRecipe {
     });
   }
 
+  renderRotationMechanisms() {
+    const values = this.state.handPose.rotationMechanisms?.values || [];
+    ROTATION_MECHANISM_KEYS.forEach((key, i) => {
+      const input = document.querySelector(`.rotation-mechanism-range[data-rotation-mechanism-key="${key}"]`);
+      const row = input?.closest('.rotation-mechanism-row');
+      const out = row?.querySelector('.phalange-out');
+      const v = values[i] ?? 0;
+      if (input) input.value = String(v);
+      if (out) out.textContent = String(v);
+    });
+  }
+
   renderAll() {
     this.renderHandPose();
     this.renderPhalanges();
     this.renderMetacarpals();
+    this.renderRotationMechanisms();
     this.updateOutput('готово');
   }
 
@@ -288,6 +318,24 @@ export class DashboardRecipe {
     });
   }
 
+  bindRotationMechanisms() {
+    document.querySelectorAll('.rotation-mechanism-range[data-rotation-mechanism-index]').forEach((input) => {
+      const row = input.closest('.rotation-mechanism-row');
+      const out = row?.querySelector('.phalange-out');
+      input.addEventListener('input', () => {
+        this.setRotationMechanismValue(input.dataset.rotationMechanismIndex, input.value);
+        const v = this.state.handPose.rotationMechanisms?.values?.[Number(input.dataset.rotationMechanismIndex)] ?? 0;
+        if (out) out.textContent = String(v);
+        this.notifyHandPoseChanged();
+      });
+      input.addEventListener('change', () => {
+        this.pushHistory();
+        this.save();
+        this.updateOutput('поворотные механизмы');
+      });
+    });
+  }
+
   bind() {
     document.querySelector('[data-hand-action="pose-reset"]')?.addEventListener('click', () => this.resetHandPose());
 
@@ -332,6 +380,7 @@ export class DashboardRecipe {
     this.bindFingers();
     this.bindPhalanges();
     this.bindMetacarpals();
+    this.bindRotationMechanisms();
     this.bind();
     this.renderAll();
   }
