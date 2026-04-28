@@ -1,5 +1,5 @@
 import { clamp, downloadText } from './utils.js';
-import { defaultHandPose, parseHandPosePayloadFromJson } from './handPose.js';
+import { PHALANGE_FINGER_KEYS, defaultHandPose, normalizePhalangeValues, parseHandPosePayloadFromJson } from './handPose.js';
 import { EVENTS, emit, on } from './eventBus.js';
 import { toast } from './toast.js';
 
@@ -45,11 +45,8 @@ export class DashboardRecipe {
     const phalanges = data.handPose?.phalanges;
     if (phalanges && typeof phalanges === 'object') {
       for (const type of ['middle', 'proximal']) {
-        if (!Array.isArray(phalanges[type])) continue;
-        for (let i = 0; i < 4; i++) {
-          const v = Number(phalanges[type][i]);
-          out.handPose.phalanges[type][i] = Number.isFinite(v) ? clamp(v, -100, 100) : 0;
-        }
+        const values = normalizePhalangeValues(phalanges[type], phalanges.keys);
+        if (values) out.handPose.phalanges[type] = values;
       }
     }
     return out;
@@ -102,7 +99,7 @@ export class DashboardRecipe {
   setPhalangeValue(type, index, value) {
     const arr = this.state?.handPose?.phalanges?.[type];
     if (!arr) return;
-    const i = clamp(Number(index), 0, 3);
+    const i = clamp(Number(index), 0, PHALANGE_FINGER_KEYS.length - 1);
     arr[i] = clamp(Number(value), -100, 100);
   }
 
@@ -193,7 +190,7 @@ export class DashboardRecipe {
   renderPhalanges() {
     for (const [type, prefix] of [['middle', 'hm'], ['proximal', 'hp']]) {
       const values = this.state.handPose.phalanges?.[type] || [];
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < PHALANGE_FINGER_KEYS.length; i++) {
         const input = document.getElementById(`${prefix}${i}`);
         const row = input?.closest('.phalange-row');
         const out = row?.querySelector('.phalange-out');

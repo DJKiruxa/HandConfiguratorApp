@@ -13,22 +13,23 @@ const ARM_GLB = 'ARM.glb';
 const ARM_DIR = 'img/models/';
 const MAX_PHALANGE_BEND_RAD = Math.PI / 2;
 const PHALANGE_BONES = [
-  { fingerIndex: 0, type: 'finger', index: 0, name: 'Bone.018', axis: [0, 0, 1] },
-  { fingerIndex: 0, type: 'finger', index: 0, name: 'Bone.019' },
-  { type: 'proximal', index: 3, name: 'Bone.005' },
-  { type: 'middle', index: 3, name: 'Bone.006' },
-  { type: 'proximal', index: 2, name: 'Bone.008' },
-  { type: 'middle', index: 2, name: 'Bone.009' },
-  { type: 'proximal', index: 1, name: 'Bone.011' },
-  { type: 'middle', index: 1, name: 'Bone.012' },
-  { type: 'proximal', index: 0, name: 'Bone.015' },
-  { type: 'middle', index: 0, name: 'Bone.016' },
+  { type: 'proximal', index: 0, name: 'Bone.018', axis: [0, 0, 1] },
+  { type: 'middle', index: 0, name: 'Bone.019' },
+  { type: 'proximal', index: 4, name: 'Bone.005' },
+  { type: 'middle', index: 4, name: 'Bone.006' },
+  { type: 'proximal', index: 3, name: 'Bone.008' },
+  { type: 'middle', index: 3, name: 'Bone.009' },
+  { type: 'proximal', index: 2, name: 'Bone.011' },
+  { type: 'middle', index: 2, name: 'Bone.012' },
+  { type: 'proximal', index: 1, name: 'Bone.015' },
+  { type: 'middle', index: 1, name: 'Bone.016' },
 ];
 const PHALANGE_TO_FINGER_INDEX = {
-  0: 1,
-  1: 2,
-  2: 3,
-  3: 4,
+  0: 0,
+  1: 1,
+  2: 2,
+  3: 3,
+  4: 4,
 };
 
 function readStoredHandPose() {
