@@ -13,7 +13,7 @@ const ARM_GLB = 'ARM.glb';
 const ARM_DIR = 'img/models/';
 const MAX_PHALANGE_BEND_RAD = Math.PI / 2;
 const PHALANGE_BONES = [
-  { fingerIndex: 0, type: 'finger', index: 0, name: 'Bone.018' },
+  { fingerIndex: 0, type: 'finger', index: 0, name: 'Bone.018', axis: [0, 0, 1] },
   { fingerIndex: 0, type: 'finger', index: 0, name: 'Bone.019' },
   { type: 'proximal', index: 3, name: 'Bone.005' },
   { type: 'middle', index: 3, name: 'Bone.006' },
@@ -74,40 +74,21 @@ export function createDashboardScene(canvas, opts = {}) {
 
   const camera = new BABYLON.ArcRotateCamera('dashCam', -Math.PI / 2.35, Math.PI / 3.1, 180, new BABYLON.Vector3(0, 0, 0), scene);
   camera.attachControl(canvas, true);
-  /** Только вращение вокруг модели: без панорами и зума. */
+  /** Вращение вокруг модели без панорамирования, с ограниченным zoom колесиком. */
   camera.panningSensibility = 0;
   camera.angularSensibilityX = 1000;
   camera.angularSensibilityY = 1000;
   const R_LO = 20;
   const R_HI = 1200;
 
-  function lockOrbitNoZoom() {
-    const r = Math.max(1, camera.radius);
-    camera.lowerRadiusLimit = r;
-    camera.upperRadiusLimit = r;
-  }
-
-  function unlockRadius() {
+  function applyZoomLimits() {
     camera.lowerRadiusLimit = R_LO;
     camera.upperRadiusLimit = R_HI;
   }
 
-  lockOrbitNoZoom();
-
-  if (camera.inputs) {
-    try {
-      if (typeof camera.inputs.removeByType === 'function') {
-        camera.inputs.removeByType('ArcRotateCameraMouseWheelInput');
-      } else {
-        const attached = camera.inputs.attached;
-        for (const k of Object.keys(attached || {})) {
-          if (k.toLowerCase().includes('wheel')) camera.inputs.remove(attached[k]);
-        }
-      }
-    } catch (_) { /* ignore */ }
-  }
-
-  camera.wheelPrecision = 1e6;
+  applyZoomLimits();
+  camera.wheelPrecision = 45;
+  camera.wheelDeltaPercentage = 0.01;
   camera.minZ = 0.1;
 
   hemis = new BABYLON.HemisphericLight('dashH', new BABYLON.Vector3(0.1, 1, 0.2), scene);
@@ -125,6 +106,7 @@ export function createDashboardScene(canvas, opts = {}) {
   let activeHandPose = readStoredHandPose();
   let phalangeRig = [];
   const bendAxis = new BABYLON.Vector3(1, 0, 0);
+  const thumbBendAxis = new BABYLON.Vector3(0, 0, 1);
   const bendQ = new BABYLON.Quaternion();
 
   const dashSceneById = (data, id) => normalizeAuthoring(data?.authoring).scenes.find((s) => s.id === id) || null;
@@ -134,7 +116,7 @@ export function createDashboardScene(canvas, opts = {}) {
     if (!payload?.camera) return false;
     applyCameraSnapshot(camera, payload.camera);
     if (!contentRoot || !Array.isArray(payload.parts)) {
-      lockOrbitNoZoom();
+      applyZoomLimits();
       return true;
     }
     const ch = contentRoot.children || [];
@@ -142,7 +124,7 @@ export function createDashboardScene(canvas, opts = {}) {
       const tr = payload.parts[i].transform;
       if (tr?.position) applyTransformSnapshot(ch[i], tr);
     }
-    lockOrbitNoZoom();
+    applyZoomLimits();
     return true;
   }
 
@@ -182,7 +164,7 @@ export function createDashboardScene(canvas, opts = {}) {
     const b = dashSceneById(lastAssemblyData, clip.toSceneId);
     if (!a || !b) return false;
     if (dashClipRenderObs) { scene.onBeforeRenderObservable.remove(dashClipRenderObs); dashClipRenderObs = null; }
-    unlockRadius();
+    applyZoomLimits();
     const run = ++clipRunId;
     const durMs = Math.max(150, (Number(clip.durationSec) || 2) * 1000);
     const t0 = performance.now();
@@ -190,7 +172,7 @@ export function createDashboardScene(canvas, opts = {}) {
       if (run !== clipRunId) {
         scene.onBeforeRenderObservable.remove(obs);
         if (dashClipRenderObs === obs) dashClipRenderObs = null;
-        lockOrbitNoZoom();
+        applyZoomLimits();
         return;
       }
       const u = Math.min(1, (performance.now() - t0) / durMs);
@@ -199,7 +181,7 @@ export function createDashboardScene(canvas, opts = {}) {
         lerpDashScenes(a, b, 1);
         scene.onBeforeRenderObservable.remove(obs);
         if (dashClipRenderObs === obs) dashClipRenderObs = null;
-        lockOrbitNoZoom();
+        applyZoomLimits();
       }
     });
     dashClipRenderObs = obs;
@@ -209,7 +191,7 @@ export function createDashboardScene(canvas, opts = {}) {
   function stopClipPlayback() {
     clipRunId += 1;
     if (dashClipRenderObs) { scene.onBeforeRenderObservable.remove(dashClipRenderObs); dashClipRenderObs = null; }
-    lockOrbitNoZoom();
+    applyZoomLimits();
   }
 
   function capturePhalangeRig(skeletons) {
@@ -243,8 +225,8 @@ export function createDashboardScene(canvas, opts = {}) {
       const percent = cfg.type === 'finger'
         ? getFingerPercent(activeHandPose, cfg.index)
         : clamp(getFingerPercent(activeHandPose, fingerIndex) + getPhalangePercent(activeHandPose, cfg.type, cfg.index), -100, 100);
-      const angle = (percent / 100) * MAX_PHALANGE_BEND_RAD;
-      BABYLON.Quaternion.RotationAxisToRef(bendAxis, angle, bendQ);
+      const angle = (percent / 100) * MAX_PHALANGE_BEND_RAD * (cfg.direction || 1);
+      BABYLON.Quaternion.RotationAxisToRef(cfg.axis ? thumbBendAxis : bendAxis, angle, bendQ);
       cfg.base.multiplyToRef(bendQ, cfg.tm.rotationQuaternion);
     }
   }
@@ -266,7 +248,7 @@ export function createDashboardScene(canvas, opts = {}) {
     camera.radius = clamp(size * 1.42, 40, 800);
     camera.alpha = -Math.PI / 2.35;
     camera.beta = Math.PI / 3.1;
-    lockOrbitNoZoom();
+    applyZoomLimits();
   }
 
   function showLoading(state) {
