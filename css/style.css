@@ -1163,6 +1163,11 @@ html[data-theme="light"] .side-shortcuts {
   background: var(--bg);
 }
 
+.phalange-row--placeholder {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .phalange-label,
 .phalange-out {
   font-family: var(--mono);

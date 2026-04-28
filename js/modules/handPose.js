@@ -6,7 +6,8 @@ export const FINGER_LABELS = ['большой', 'указат.', 'средний
 
 export const PHALANGE_FINGER_KEYS = ['thumb', 'index', 'middle', 'ring', 'pinky'];
 const LEGACY_PHALANGE_FINGER_KEYS = ['index', 'middle', 'ring', 'pinky'];
-export const METACARPAL_KEYS = ['pinky', 'ring', 'pinkyRing'];
+export const METACARPAL_KEYS = ['pinky', 'ring', 'pinkyRing', 'thumb'];
+const LEGACY_METACARPAL_KEYS = ['pinky', 'ring', 'pinkyRing'];
 
 export function defaultHandPose() {
   return {
@@ -22,7 +23,7 @@ export function defaultHandPose() {
     },
     metacarpals: {
       keys: [...METACARPAL_KEYS],
-      values: [0, 0, 0],
+      values: [0, 0, 0, 0],
     },
   };
 }
@@ -103,10 +104,12 @@ export function normalizePhalangeValues(arr, keys) {
 
 export function normalizeMetacarpalValues(arr, keys) {
   if (!Array.isArray(arr)) return null;
-  const sourceKeys = Array.isArray(keys) && keys.length ? keys : METACARPAL_KEYS;
+  const sourceKeys = Array.isArray(keys) && keys.length
+    ? keys
+    : (arr.length >= METACARPAL_KEYS.length ? METACARPAL_KEYS : LEGACY_METACARPAL_KEYS);
   if (arr.length < sourceKeys.length) return null;
 
-  const out = [0, 0, 0];
+  const out = [0, 0, 0, 0];
   sourceKeys.slice(0, arr.length).forEach((key, i) => {
     const targetIndex = METACARPAL_KEYS.indexOf(key);
     if (targetIndex < 0) return;

@@ -14,7 +14,6 @@ const ARM_DIR = 'img/models/';
 const MAX_PHALANGE_BEND_RAD = Math.PI / 2;
 const MAX_METACARPAL_BEND_RAD = Math.PI / 2;
 const PHALANGE_BONES = [
-  { type: 'proximal', index: 0, name: 'Bone.018', axis: [0, 0, 1] },
   { type: 'middle', index: 0, name: 'Bone.019' },
   { type: 'proximal', index: 4, name: 'Bone.005' },
   { type: 'middle', index: 4, name: 'Bone.006' },
@@ -28,6 +27,7 @@ const PHALANGE_BONES = [
 const METACARPAL_BONES = [
   { key: 'pinky', name: 'Bone.003' },
   { key: 'ring', name: 'Bone.007', comboFollow: true },
+  { key: 'thumb', name: 'Bone.018', axis: 'z' },
 ];
 const METACARPAL_COMBO_KEY = 'pinkyRing';
 const METACARPAL_RING_COMBO_PLATEAU = 44;
@@ -61,7 +61,7 @@ function getFingerPercent(handPose, index) {
 function getMetacarpalPercent(handPose, key) {
   const keys = handPose?.metacarpals?.keys;
   const index = Array.isArray(keys) ? keys.indexOf(key) : -1;
-  const fallback = key === 'pinky' ? 0 : key === 'ring' ? 1 : 2;
+  const fallback = key === 'pinky' ? 0 : key === 'ring' ? 1 : key === 'pinkyRing' ? 2 : 3;
   const value = Number(handPose?.metacarpals?.values?.[index >= 0 ? index : fallback] ?? 0);
   return Number.isFinite(value) ? -clamp(value, -100, 100) : 0;
 }
@@ -130,10 +130,12 @@ export function createDashboardScene(canvas, opts = {}) {
   let activeHandPose = readStoredHandPose();
   let phalangeRig = [];
   let metacarpalRig = [];
+  let combinedRigByBone = new Map();
   const bendAxis = new BABYLON.Vector3(1, 0, 0);
   const thumbBendAxis = new BABYLON.Vector3(0, 0, 1);
   const metacarpalAxis = new BABYLON.Vector3(1, 0, 0);
   const bendQ = new BABYLON.Quaternion();
+  const metacarpalQ = new BABYLON.Quaternion();
 
   const dashSceneById = (data, id) => normalizeAuthoring(data?.authoring).scenes.find((s) => s.id === id) || null;
   const dashClipById = (data, id) => normalizeAuthoring(data?.authoring).clips.find((c) => c.id === id) || null;
@@ -224,6 +226,7 @@ export function createDashboardScene(canvas, opts = {}) {
     const skeleton = (skeletons || scene.skeletons || []).find((sk) => sk?.bones?.length);
     phalangeRig = [];
     metacarpalRig = [];
+    combinedRigByBone = new Map();
     if (!skeleton) return;
 
     for (const cfg of PHALANGE_BONES) {
@@ -238,6 +241,7 @@ export function createDashboardScene(canvas, opts = {}) {
         : BABYLON.Quaternion.FromEulerAngles(tm.rotation.x, tm.rotation.y, tm.rotation.z);
       tm.rotationQuaternion = tm.rotationQuaternion || base.clone();
       phalangeRig.push({ ...cfg, tm, base });
+      combinedRigByBone.set(cfg.name.toLowerCase(), { tm, base, phalange: null, metacarpal: null });
     }
 
     for (const cfg of METACARPAL_BONES) {
@@ -252,6 +256,8 @@ export function createDashboardScene(canvas, opts = {}) {
         : BABYLON.Quaternion.FromEulerAngles(tm.rotation.x, tm.rotation.y, tm.rotation.z);
       tm.rotationQuaternion = tm.rotationQuaternion || base.clone();
       metacarpalRig.push({ ...cfg, tm, base });
+      const boneKey = cfg.name.toLowerCase();
+      if (!combinedRigByBone.has(boneKey)) combinedRigByBone.set(boneKey, { tm, base, phalange: null, metacarpal: null });
     }
 
     applyHandPoseToRig(activeHandPose);
@@ -261,6 +267,11 @@ export function createDashboardScene(canvas, opts = {}) {
     activeHandPose = handPose || activeHandPose;
     if (!activeHandPose || (!phalangeRig.length && !metacarpalRig.length)) return;
 
+    for (const rig of combinedRigByBone.values()) {
+      rig.phalange = null;
+      rig.metacarpal = null;
+    }
+
     for (const cfg of phalangeRig) {
       const fingerIndex = cfg.fingerIndex ?? PHALANGE_TO_FINGER_INDEX[cfg.index];
       const percent = cfg.type === 'finger'
@@ -268,7 +279,9 @@ export function createDashboardScene(canvas, opts = {}) {
         : clamp(getFingerPercent(activeHandPose, fingerIndex) + getPhalangePercent(activeHandPose, cfg.type, cfg.index), -100, 100);
       const angle = (percent / 100) * MAX_PHALANGE_BEND_RAD * (cfg.direction || 1);
       BABYLON.Quaternion.RotationAxisToRef(cfg.axis ? thumbBendAxis : bendAxis, angle, bendQ);
-      cfg.base.multiplyToRef(bendQ, cfg.tm.rotationQuaternion);
+      const rig = combinedRigByBone.get(cfg.name.toLowerCase());
+      if (rig) rig.phalange = bendQ.clone();
+      else cfg.base.multiplyToRef(bendQ, cfg.tm.rotationQuaternion);
     }
 
     for (const cfg of metacarpalRig) {
@@ -281,8 +294,16 @@ export function createDashboardScene(canvas, opts = {}) {
         100,
       );
       const angle = (percent / 100) * MAX_METACARPAL_BEND_RAD;
-      BABYLON.Quaternion.RotationAxisToRef(metacarpalAxis, angle, bendQ);
-      cfg.base.multiplyToRef(bendQ, cfg.tm.rotationQuaternion);
+      BABYLON.Quaternion.RotationAxisToRef(cfg.axis === 'z' ? thumbBendAxis : metacarpalAxis, angle, metacarpalQ);
+      const rig = combinedRigByBone.get(cfg.name.toLowerCase());
+      if (rig) rig.metacarpal = metacarpalQ.clone();
+      else cfg.base.multiplyToRef(metacarpalQ, cfg.tm.rotationQuaternion);
+    }
+
+    for (const rig of combinedRigByBone.values()) {
+      rig.tm.rotationQuaternion.copyFrom(rig.base);
+      if (rig.phalange) rig.tm.rotationQuaternion.multiplyInPlace(rig.phalange);
+      if (rig.metacarpal) rig.tm.rotationQuaternion.multiplyInPlace(rig.metacarpal);
     }
   }
 
