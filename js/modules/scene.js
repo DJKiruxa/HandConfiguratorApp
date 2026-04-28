@@ -12,6 +12,7 @@ import { getTheme } from './theme.js';
 const ARM_GLB = 'ARM.glb';
 const ARM_DIR = 'img/models/';
 const MAX_PHALANGE_BEND_RAD = Math.PI / 2;
+const MAX_METACARPAL_BEND_RAD = Math.PI / 2;
 const PHALANGE_BONES = [
   { type: 'proximal', index: 0, name: 'Bone.018', axis: [0, 0, 1] },
   { type: 'middle', index: 0, name: 'Bone.019' },
@@ -24,6 +25,12 @@ const PHALANGE_BONES = [
   { type: 'proximal', index: 1, name: 'Bone.015' },
   { type: 'middle', index: 1, name: 'Bone.016' },
 ];
+const METACARPAL_BONES = [
+  { key: 'pinky', name: 'Bone.003' },
+  { key: 'ring', name: 'Bone.007', comboFollow: true },
+];
+const METACARPAL_COMBO_KEY = 'pinkyRing';
+const METACARPAL_RING_COMBO_PLATEAU = 44;
 const PHALANGE_TO_FINGER_INDEX = {
   0: 0,
   1: 1,
@@ -49,6 +56,22 @@ function getPhalangePercent(handPose, type, index) {
 function getFingerPercent(handPose, index) {
   const value = Number(handPose?.values?.[index] ?? 0);
   return Number.isFinite(value) ? -clamp(value, -100, 100) : 0;
+}
+
+function getMetacarpalPercent(handPose, key) {
+  const keys = handPose?.metacarpals?.keys;
+  const index = Array.isArray(keys) ? keys.indexOf(key) : -1;
+  const fallback = key === 'pinky' ? 0 : key === 'ring' ? 1 : 2;
+  const value = Number(handPose?.metacarpals?.values?.[index >= 0 ? index : fallback] ?? 0);
+  return Number.isFinite(value) ? -clamp(value, -100, 100) : 0;
+}
+
+function followMetacarpalCombo(percent) {
+  const value = clamp(percent, -100, 100);
+  if (value === 0) return 0;
+  const sign = Math.sign(value);
+  const magnitude = Math.abs(value);
+  return sign * METACARPAL_RING_COMBO_PLATEAU * (1 - Math.exp(-magnitude / METACARPAL_RING_COMBO_PLATEAU));
 }
 
 function findBoneByName(skeleton, name) {
@@ -106,8 +129,10 @@ export function createDashboardScene(canvas, opts = {}) {
   let dashClipRenderObs = null;
   let activeHandPose = readStoredHandPose();
   let phalangeRig = [];
+  let metacarpalRig = [];
   const bendAxis = new BABYLON.Vector3(1, 0, 0);
   const thumbBendAxis = new BABYLON.Vector3(0, 0, 1);
+  const metacarpalAxis = new BABYLON.Vector3(1, 0, 0);
   const bendQ = new BABYLON.Quaternion();
 
   const dashSceneById = (data, id) => normalizeAuthoring(data?.authoring).scenes.find((s) => s.id === id) || null;
@@ -198,6 +223,7 @@ export function createDashboardScene(canvas, opts = {}) {
   function capturePhalangeRig(skeletons) {
     const skeleton = (skeletons || scene.skeletons || []).find((sk) => sk?.bones?.length);
     phalangeRig = [];
+    metacarpalRig = [];
     if (!skeleton) return;
 
     for (const cfg of PHALANGE_BONES) {
@@ -214,12 +240,26 @@ export function createDashboardScene(canvas, opts = {}) {
       phalangeRig.push({ ...cfg, tm, base });
     }
 
+    for (const cfg of METACARPAL_BONES) {
+      const bone = findBoneByName(skeleton, cfg.name);
+      const tm = bone?.getTransformNode?.();
+      if (!tm) {
+        console.warn('metacarpal controller: не найдена TransformNode', cfg.name);
+        continue;
+      }
+      const base = tm.rotationQuaternion
+        ? tm.rotationQuaternion.clone()
+        : BABYLON.Quaternion.FromEulerAngles(tm.rotation.x, tm.rotation.y, tm.rotation.z);
+      tm.rotationQuaternion = tm.rotationQuaternion || base.clone();
+      metacarpalRig.push({ ...cfg, tm, base });
+    }
+
     applyHandPoseToRig(activeHandPose);
   }
 
   function applyHandPoseToRig(handPose) {
     activeHandPose = handPose || activeHandPose;
-    if (!activeHandPose || !phalangeRig.length) return;
+    if (!activeHandPose || (!phalangeRig.length && !metacarpalRig.length)) return;
 
     for (const cfg of phalangeRig) {
       const fingerIndex = cfg.fingerIndex ?? PHALANGE_TO_FINGER_INDEX[cfg.index];
@@ -228,6 +268,20 @@ export function createDashboardScene(canvas, opts = {}) {
         : clamp(getFingerPercent(activeHandPose, fingerIndex) + getPhalangePercent(activeHandPose, cfg.type, cfg.index), -100, 100);
       const angle = (percent / 100) * MAX_PHALANGE_BEND_RAD * (cfg.direction || 1);
       BABYLON.Quaternion.RotationAxisToRef(cfg.axis ? thumbBendAxis : bendAxis, angle, bendQ);
+      cfg.base.multiplyToRef(bendQ, cfg.tm.rotationQuaternion);
+    }
+
+    for (const cfg of metacarpalRig) {
+      const ownPercent = getMetacarpalPercent(activeHandPose, cfg.key);
+      const comboBasePercent = getMetacarpalPercent(activeHandPose, METACARPAL_COMBO_KEY);
+      const comboPercent = cfg.comboFollow ? followMetacarpalCombo(comboBasePercent) : comboBasePercent;
+      const percent = clamp(
+        ownPercent + comboPercent,
+        -100,
+        100,
+      );
+      const angle = (percent / 100) * MAX_METACARPAL_BEND_RAD;
+      BABYLON.Quaternion.RotationAxisToRef(metacarpalAxis, angle, bendQ);
       cfg.base.multiplyToRef(bendQ, cfg.tm.rotationQuaternion);
     }
   }

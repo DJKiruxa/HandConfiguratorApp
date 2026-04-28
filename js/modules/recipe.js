@@ -1,5 +1,12 @@
 import { clamp, downloadText } from './utils.js';
-import { PHALANGE_FINGER_KEYS, defaultHandPose, normalizePhalangeValues, parseHandPosePayloadFromJson } from './handPose.js';
+import {
+  METACARPAL_KEYS,
+  PHALANGE_FINGER_KEYS,
+  defaultHandPose,
+  normalizeMetacarpalValues,
+  normalizePhalangeValues,
+  parseHandPosePayloadFromJson,
+} from './handPose.js';
 import { EVENTS, emit, on } from './eventBus.js';
 import { toast } from './toast.js';
 
@@ -49,6 +56,11 @@ export class DashboardRecipe {
         if (values) out.handPose.phalanges[type] = values;
       }
     }
+    const metacarpals = data.handPose?.metacarpals;
+    const metacarpalValues = Array.isArray(metacarpals)
+      ? normalizeMetacarpalValues(metacarpals)
+      : normalizeMetacarpalValues(metacarpals?.values, metacarpals?.keys);
+    if (metacarpalValues) out.handPose.metacarpals.values = metacarpalValues;
     return out;
   }
 
@@ -103,12 +115,20 @@ export class DashboardRecipe {
     arr[i] = clamp(Number(value), -100, 100);
   }
 
+  setMetacarpalValue(index, value) {
+    const arr = this.state?.handPose?.metacarpals?.values;
+    if (!arr) return;
+    const i = clamp(Number(index), 0, METACARPAL_KEYS.length - 1);
+    arr[i] = clamp(Number(value), -100, 100);
+  }
+
   resetHandPose() {
     this.pushHistory();
     this.state.handPose = defaultHandPose();
     this.save();
     this.renderHandPose();
     this.renderPhalanges();
+    this.renderMetacarpals();
     this.updateOutput('поза: сброс');
     emit(EVENTS.FINGER_VALUE, { all: this.state.handPose.values.slice() });
     toast('пальцы в 0%');
@@ -135,6 +155,7 @@ export class DashboardRecipe {
     this.save();
     this.renderHandPose();
     this.renderPhalanges();
+    this.renderMetacarpals();
     this.updateOutput('поза из JSON');
     toast('поза применена', { type: 'success' });
     return true;
@@ -201,9 +222,22 @@ export class DashboardRecipe {
     }
   }
 
+  renderMetacarpals() {
+    const values = this.state.handPose.metacarpals?.values || [];
+    METACARPAL_KEYS.forEach((key, i) => {
+      const input = document.querySelector(`.metacarpal-range[data-metacarpal-key="${key}"]`);
+      const row = input?.closest('.metacarpal-row');
+      const out = row?.querySelector('.phalange-out');
+      const v = values[i] ?? 0;
+      if (input) input.value = String(v);
+      if (out) out.textContent = String(v);
+    });
+  }
+
   renderAll() {
     this.renderHandPose();
     this.renderPhalanges();
+    this.renderMetacarpals();
     this.updateOutput('готово');
   }
 
@@ -242,6 +276,24 @@ export class DashboardRecipe {
         this.pushHistory();
         this.save();
         this.updateOutput('фаланги');
+      });
+    });
+  }
+
+  bindMetacarpals() {
+    document.querySelectorAll('.metacarpal-range[data-metacarpal-index]').forEach((input) => {
+      const row = input.closest('.metacarpal-row');
+      const out = row?.querySelector('.phalange-out');
+      input.addEventListener('input', () => {
+        this.setMetacarpalValue(input.dataset.metacarpalIndex, input.value);
+        const v = this.state.handPose.metacarpals?.values?.[Number(input.dataset.metacarpalIndex)] ?? 0;
+        if (out) out.textContent = String(v);
+        this.notifyHandPoseChanged();
+      });
+      input.addEventListener('change', () => {
+        this.pushHistory();
+        this.save();
+        this.updateOutput('пястные');
       });
     });
   }
@@ -289,6 +341,7 @@ export class DashboardRecipe {
     this.load();
     this.bindFingers();
     this.bindPhalanges();
+    this.bindMetacarpals();
     this.bind();
     this.renderAll();
   }
