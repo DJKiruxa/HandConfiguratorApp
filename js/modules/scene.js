@@ -27,7 +27,7 @@ const PHALANGE_BONES = [
 const METACARPAL_BONES = [
   { key: 'pinky', name: 'Bone.003', combo: true },
   { key: 'ring', name: 'Bone.007', combo: true, comboFollow: true },
-  { key: 'thumb', name: 'Bone.018', axis: 'z' },
+  { key: 'thumb', name: 'Bone.018', axis: 'z', limit: 21 },
 ];
 const METACARPAL_COMBO_KEY = 'pinkyRing';
 const METACARPAL_RING_COMBO_PLATEAU = 44;
@@ -292,8 +292,8 @@ export function createDashboardScene(canvas, opts = {}) {
         : 0;
       const percent = clamp(
         ownPercent + comboPercent,
-        -100,
-        100,
+        -(cfg.limit ?? 100),
+        cfg.limit ?? 100,
       );
       const angle = (percent / 100) * MAX_METACARPAL_BEND_RAD;
       BABYLON.Quaternion.RotationAxisToRef(cfg.axis === 'z' ? thumbBendAxis : metacarpalAxis, angle, metacarpalQ);
