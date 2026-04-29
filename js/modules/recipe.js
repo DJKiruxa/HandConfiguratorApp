@@ -336,94 +336,6 @@ export class DashboardRecipe {
     });
   }
 
-  isMobileSliderEditor() {
-    return window.matchMedia?.('(max-width: 900px)')?.matches;
-  }
-
-  getMobileSliderSheet() {
-    let sheet = document.getElementById('mobileSliderSheet');
-    if (sheet) return sheet;
-
-    sheet = document.createElement('div');
-    sheet.id = 'mobileSliderSheet';
-    sheet.className = 'mobile-slider-sheet';
-    sheet.hidden = true;
-    sheet.innerHTML = `
-      <div class="mobile-slider-sheet__backdrop" data-mobile-slider-close></div>
-      <section class="mobile-slider-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="mobileSliderTitle">
-        <div class="mobile-slider-sheet__bar">
-          <div>
-            <div class="mobile-slider-sheet__meta">параметр</div>
-            <div class="mobile-slider-sheet__title" id="mobileSliderTitle"></div>
-          </div>
-          <button type="button" class="mobile-slider-sheet__close" data-mobile-slider-close aria-label="Закрыть">×</button>
-        </div>
-        <div class="mobile-slider-sheet__value" data-mobile-slider-value>0</div>
-        <input class="mobile-slider-sheet__range" type="range" />
-      </section>
-    `;
-    document.body.append(sheet);
-    sheet.querySelectorAll('[data-mobile-slider-close]').forEach((el) =>
-      el.addEventListener('click', () => this.closeMobileSliderSheet()),
-    );
-    sheet.querySelector('.mobile-slider-sheet__range')?.addEventListener('input', (event) => {
-      const target = this.mobileSliderTarget;
-      if (!target) return;
-      target.value = event.target.value;
-      sheet.querySelector('[data-mobile-slider-value]').textContent = event.target.value;
-      target.dispatchEvent(new Event('input', { bubbles: true }));
-      this.mobileSliderChanged = true;
-    });
-    return sheet;
-  }
-
-  openMobileSliderSheet(input) {
-    if (!input) return;
-    const sheet = this.getMobileSliderSheet();
-    const row = input.closest('.finger-row, .phalange-row, .metacarpal-row, .rotation-mechanism-row');
-    const label = row?.querySelector('.finger-label, .phalange-label')?.textContent?.trim() || 'параметр';
-    const range = sheet.querySelector('.mobile-slider-sheet__range');
-    if (!range) return;
-
-    this.mobileSliderTarget = input;
-    this.mobileSliderChanged = false;
-    sheet.querySelector('#mobileSliderTitle').textContent = label;
-    sheet.querySelector('[data-mobile-slider-value]').textContent = input.value;
-    range.min = input.min || '-100';
-    range.max = input.max || '100';
-    range.step = input.step || '1';
-    range.value = input.value;
-    sheet.hidden = false;
-    document.body.classList.add('mobile-slider-open');
-    requestAnimationFrame(() => range.focus({ preventScroll: true }));
-  }
-
-  closeMobileSliderSheet() {
-    const sheet = document.getElementById('mobileSliderSheet');
-    if (!sheet || sheet.hidden) return;
-    if (this.mobileSliderTarget && this.mobileSliderChanged) {
-      this.mobileSliderTarget.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-    sheet.hidden = true;
-    document.body.classList.remove('mobile-slider-open');
-    this.mobileSliderTarget = null;
-    this.mobileSliderChanged = false;
-  }
-
-  bindMobileSliderSheet() {
-    document.querySelectorAll('.finger-row, .phalange-row, .metacarpal-row, .rotation-mechanism-row').forEach((row) => {
-      const input = row.querySelector('.finger-range, .phalange-range, .metacarpal-range, .rotation-mechanism-range');
-      if (!input) return;
-      row.addEventListener('click', (event) => {
-        if (!this.isMobileSliderEditor()) return;
-        this.openMobileSliderSheet(input);
-      });
-    });
-    window.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') this.closeMobileSliderSheet();
-    });
-  }
-
   bind() {
     document.querySelector('[data-hand-action="pose-reset"]')?.addEventListener('click', () => this.resetHandPose());
 
@@ -469,7 +381,6 @@ export class DashboardRecipe {
     this.bindPhalanges();
     this.bindMetacarpals();
     this.bindRotationMechanisms();
-    this.bindMobileSliderSheet();
     this.bind();
     this.renderAll();
   }
