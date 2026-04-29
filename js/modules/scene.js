@@ -13,6 +13,8 @@ const ARM_GLB = 'ARM.glb';
 const ARM_DIR = 'img/models/';
 const ARM_PRESET_SPLIT_SEC = 4;
 const ARM_PRESET_NAMES = ['Буква Г', 'Буква Ы'];
+const ARM_LETTER_G_HOLD_AT_SEC = 3;
+const ARM_LETTER_G_HOLD_DURATION_SEC = 2;
 const MAX_PHALANGE_BEND_RAD = Math.PI / 2;
 const MAX_METACARPAL_BEND_RAD = Math.PI / 2;
 const PHALANGE_BONES = [
@@ -100,18 +102,50 @@ function getAnimationGroupFrameRate(group) {
   return Number.isFinite(fps) && fps > 0 ? fps : 30;
 }
 
+function createArmAnimationPreset(group, name = group?.name, range = {}) {
+  const fps = getAnimationGroupFrameRate(group);
+  const from = Number.isFinite(range.from) ? range.from : Number.isFinite(group?.from) ? group.from : 0;
+  const to = Number.isFinite(range.to) ? range.to : Number.isFinite(group?.to) ? group.to : from;
+  const sourceDurationSec = Math.max(0, (to - from) / fps);
+  const holdAtSec = Number.isFinite(range.holdAtSec)
+    ? clamp(range.holdAtSec, 0, sourceDurationSec)
+    : null;
+  const holdDurationSec = holdAtSec === null ? 0 : Math.max(0, Number(range.holdDurationSec) || 0);
+  return {
+    name: name || group?.name || 'Анимация',
+    group,
+    from,
+    to,
+    fps,
+    sourceDurationSec,
+    holdAtSec,
+    holdDurationSec,
+    durationSec: sourceDurationSec + holdDurationSec,
+  };
+}
+
 function createArmAnimationPresets(groups) {
   const sourceGroup = groups?.[0];
   if (!sourceGroup) return [];
 
   const splitFrame = sourceGroup.from + (ARM_PRESET_SPLIT_SEC * getAnimationGroupFrameRate(sourceGroup));
   if (!Number.isFinite(splitFrame) || splitFrame >= sourceGroup.to) {
-    return groups;
+    return groups.map((group) => createArmAnimationPreset(group));
   }
 
   return [
-    { name: ARM_PRESET_NAMES[0], group: sourceGroup, from: sourceGroup.from, to: splitFrame },
-    { name: ARM_PRESET_NAMES[1], group: sourceGroup, from: splitFrame, to: sourceGroup.to },
+    createArmAnimationPreset(sourceGroup, ARM_PRESET_NAMES[0], {
+      from: sourceGroup.from,
+      to: splitFrame,
+      holdAtSec: ARM_LETTER_G_HOLD_AT_SEC,
+      holdDurationSec: ARM_LETTER_G_HOLD_DURATION_SEC,
+    }),
+    createArmAnimationPreset(sourceGroup, ARM_PRESET_NAMES[1], {
+      from: splitFrame,
+      to: sourceGroup.to,
+      holdAtSec: ARM_LETTER_G_HOLD_AT_SEC,
+      holdDurationSec: ARM_LETTER_G_HOLD_DURATION_SEC,
+    }),
   ];
 }
 
@@ -166,6 +200,8 @@ export function createDashboardScene(canvas, opts = {}) {
   let activeHandPose = readStoredHandPose();
   let armAnimationGroups = [];
   let activeArmAnimationIndex = -1;
+  let activeArmAnimationProgress = 0;
+  let armAnimationProgressObs = null;
   let phalangeRig = [];
   let metacarpalRig = [];
   let rotationMechanismRig = [];
@@ -263,24 +299,103 @@ export function createDashboardScene(canvas, opts = {}) {
   }
 
   function notifyArmAnimationsChanged() {
-    opts.onAnimationsChanged?.(armAnimationGroups, activeArmAnimationIndex);
+    opts.onAnimationsChanged?.(armAnimationGroups, activeArmAnimationIndex, activeArmAnimationProgress);
+  }
+
+  function notifyArmAnimationProgress() {
+    const preset = armAnimationGroups[activeArmAnimationIndex];
+    const currentSec = Math.max(0, activeArmAnimationProgress * (Number(preset?.durationSec) || 0));
+    opts.onAnimationProgress?.(activeArmAnimationIndex, activeArmAnimationProgress, currentSec);
+  }
+
+  function clearArmAnimationProgressObserver() {
+    if (armAnimationProgressObs) {
+      scene.onBeforeRenderObservable.remove(armAnimationProgressObs);
+      armAnimationProgressObs = null;
+    }
+  }
+
+  function getArmAnimationFrameAtProgress(preset, progress) {
+    const from = preset.from ?? preset.group?.from ?? 0;
+    const to = preset.to ?? preset.group?.to ?? from;
+    const sourceDurationSec = Number(preset.sourceDurationSec) || Math.max(0, (to - from) / (preset.fps || 30));
+    if (sourceDurationSec <= 0) return from;
+
+    const timelineSec = clamp(progress, 0, 1) * (Number(preset.durationSec) || sourceDurationSec);
+    let sourceSec = timelineSec;
+    if (Number.isFinite(preset.holdAtSec) && preset.holdDurationSec > 0) {
+      const holdStart = preset.holdAtSec;
+      const holdEnd = holdStart + preset.holdDurationSec;
+      if (timelineSec >= holdStart && timelineSec <= holdEnd) sourceSec = holdStart;
+      else if (timelineSec > holdEnd) sourceSec = timelineSec - preset.holdDurationSec;
+    }
+
+    return lerp(from, to, clamp(sourceSec / sourceDurationSec, 0, 1));
+  }
+
+  function prepareArmAnimationForScrub(preset) {
+    const anim = preset?.group || preset;
+    if (!anim) return null;
+    const from = preset.from ?? anim.from ?? 0;
+    const to = preset.to ?? anim.to ?? from;
+    anim.reset();
+    anim.start(false, 1.0, from, to, false);
+    anim.pause?.();
+    return anim;
   }
 
   function stopArmAnimations() {
+    clearArmAnimationProgressObserver();
     armAnimationGroups.forEach((preset) => (preset.group || preset).stop());
     activeArmAnimationIndex = -1;
+    activeArmAnimationProgress = 0;
     notifyArmAnimationsChanged();
+    notifyArmAnimationProgress();
   }
 
   function playArmAnimation(index) {
     const preset = armAnimationGroups[index];
     const anim = preset?.group || preset;
     if (!anim) return false;
+    clearArmAnimationProgressObserver();
     armAnimationGroups.forEach((item) => (item.group || item).stop());
-    anim.reset();
-    anim.start(false, 1.0, preset.from ?? anim.from, preset.to ?? anim.to, false);
+    prepareArmAnimationForScrub(preset);
     activeArmAnimationIndex = index;
+    activeArmAnimationProgress = 0;
+    anim.goToFrame?.(getArmAnimationFrameAtProgress(preset, activeArmAnimationProgress));
     notifyArmAnimationsChanged();
+    notifyArmAnimationProgress();
+
+    const durationMs = Math.max(1, (Number(preset.durationSec) || 0) * 1000);
+    const startedAt = performance.now();
+    armAnimationProgressObs = scene.onBeforeRenderObservable.add(() => {
+      if (activeArmAnimationIndex !== index) {
+        clearArmAnimationProgressObserver();
+        return;
+      }
+      activeArmAnimationProgress = clamp((performance.now() - startedAt) / durationMs, 0, 1);
+      anim.goToFrame?.(getArmAnimationFrameAtProgress(preset, activeArmAnimationProgress));
+      notifyArmAnimationProgress();
+      if (activeArmAnimationProgress >= 1) clearArmAnimationProgressObserver();
+    });
+    return true;
+  }
+
+  function seekArmAnimation(index, progress) {
+    const preset = armAnimationGroups[index];
+    const anim = preset?.group || preset;
+    if (!anim) return false;
+    clearArmAnimationProgressObserver();
+    armAnimationGroups.forEach((item) => (item.group || item).stop());
+
+    const wasActive = activeArmAnimationIndex === index;
+    activeArmAnimationIndex = index;
+    activeArmAnimationProgress = clamp(Number(progress) || 0, 0, 1);
+    prepareArmAnimationForScrub(preset);
+    anim.goToFrame?.(getArmAnimationFrameAtProgress(preset, activeArmAnimationProgress));
+
+    if (!wasActive) notifyArmAnimationsChanged();
+    notifyArmAnimationProgress();
     return true;
   }
 
@@ -430,8 +545,10 @@ export function createDashboardScene(canvas, opts = {}) {
   async function reloadAssemblyFromStorage() {
     showLoading(true);
     disposeContent();
+    clearArmAnimationProgressObserver();
     armAnimationGroups = [];
     activeArmAnimationIndex = -1;
+    activeArmAnimationProgress = 0;
     notifyArmAnimationsChanged();
     try {
       const raw = localStorage.getItem(ASSEMBLY_STORAGE_KEY);
@@ -506,6 +623,7 @@ export function createDashboardScene(canvas, opts = {}) {
     playClip,
     stopClipPlayback,
     playArmAnimation,
+    seekArmAnimation,
     stopArmAnimations,
     applyHandPose: applyHandPoseToRig,
     resetCamera: () => {

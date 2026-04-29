@@ -79,11 +79,45 @@ function wireDashboardUI(dash) {
     if (!btn) return;
     const index = Number(btn.dataset.armAnimation);
     if (!Number.isInteger(index)) return;
-    if (dash?.playArmAnimation(index)) toast(`анимация: ${btn.textContent.trim()}`);
+    if (dash?.playArmAnimation(index)) toast(`анимация: ${btn.dataset.armAnimationName || btn.textContent.trim()}`);
+  });
+  armAnimationList?.addEventListener('input', (e) => {
+    const input = e.target.closest('[data-arm-timeline]');
+    if (!input) return;
+    const index = Number(input.dataset.armTimeline);
+    if (!Number.isInteger(index)) return;
+    dash?.seekArmAnimation(index, Number(input.value) / 100);
   });
 }
 
-function renderArmAnimationList(groups = [], activeIndex = -1) {
+function formatAnimationDuration(group) {
+  const seconds = Number(group?.durationSec);
+  if (!Number.isFinite(seconds) || seconds <= 0) return '0.0s';
+  return `${seconds.toFixed(seconds < 10 ? 1 : 0)}s`;
+}
+
+function formatAnimationTime(seconds) {
+  const value = Number(seconds);
+  if (!Number.isFinite(value) || value <= 0) return '0.0s';
+  return `${value.toFixed(1)}s`;
+}
+
+function updateArmAnimationProgress(activeIndex = -1, progress = 0, currentSec = 0) {
+  const list = document.getElementById('armAnimationList');
+  if (!list) return;
+  const safeProgress = Math.max(0, Math.min(1, Number(progress) || 0));
+  const value = String(Math.round(safeProgress * 1000) / 10);
+  list.querySelectorAll('.animation-item').forEach((item) => {
+    const isActive = Number(item.dataset.armAnimationItem) === activeIndex;
+    item.classList.toggle('active', isActive);
+    const timeline = item.querySelector('[data-arm-timeline]');
+    if (timeline && isActive) timeline.value = value;
+    const current = item.querySelector('[data-arm-current-time]');
+    if (current && isActive) current.textContent = formatAnimationTime(currentSec);
+  });
+}
+
+function renderArmAnimationList(groups = [], activeIndex = -1, activeProgress = 0) {
   const list = document.getElementById('armAnimationList');
   if (!list) return;
   list.replaceChildren();
@@ -95,12 +129,51 @@ function renderArmAnimationList(groups = [], activeIndex = -1) {
     return;
   }
   groups.forEach((group, index) => {
+    const item = document.createElement('div');
+    item.className = `animation-item${index === activeIndex ? ' active' : ''}`;
+    item.dataset.armAnimationItem = String(index);
+
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = `animation-item${index === activeIndex ? ' active' : ''}`;
+    button.className = 'animation-play';
     button.dataset.armAnimation = String(index);
-    button.textContent = group?.name || `Анимация ${index + 1}`;
-    list.append(button);
+    button.dataset.armAnimationName = group?.name || `Анимация ${index + 1}`;
+
+    const name = document.createElement('span');
+    name.className = 'animation-name';
+    name.textContent = button.dataset.armAnimationName;
+    const duration = document.createElement('span');
+    duration.className = 'animation-duration';
+    duration.textContent = formatAnimationDuration(group);
+    button.append(name, duration);
+
+    const timeline = document.createElement('input');
+    timeline.type = 'range';
+    timeline.className = 'animation-timeline';
+    timeline.min = '0';
+    timeline.max = '100';
+    timeline.step = '0.1';
+    timeline.value = index === activeIndex ? String(Math.max(0, Math.min(1, activeProgress)) * 100) : '0';
+    timeline.dataset.armTimeline = String(index);
+    timeline.setAttribute('aria-label', `Таймлайн ${button.dataset.armAnimationName}`);
+
+    const timelineRow = document.createElement('div');
+    timelineRow.className = 'animation-timeline-row';
+    const currentTime = document.createElement('span');
+    currentTime.className = 'animation-current-time';
+    currentTime.dataset.armCurrentTime = String(index);
+    currentTime.textContent = formatAnimationTime(index === activeIndex ? activeProgress * (Number(group?.durationSec) || 0) : 0);
+    const totalTime = document.createElement('span');
+    totalTime.className = 'animation-total-time';
+    totalTime.textContent = `/ ${formatAnimationDuration(group)}`;
+
+    const time = document.createElement('span');
+    time.className = 'animation-time';
+    time.append(currentTime, totalTime);
+    timelineRow.append(timeline, time);
+
+    item.append(button, timelineRow);
+    list.append(item);
   });
 }
 
@@ -186,6 +259,7 @@ function main() {
           if (loadingEl) loadingEl.setAttribute('aria-busy', b ? 'true' : 'false');
         },
         onAnimationsChanged: renderArmAnimationList,
+        onAnimationProgress: updateArmAnimationProgress,
       })
     : null;
 

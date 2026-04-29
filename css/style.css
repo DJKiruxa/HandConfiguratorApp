@@ -148,9 +148,9 @@ html[data-theme="pink"] {
 @media (min-width: 3200px) { html { font-size: 24px; } }
 
 /* Плавная смена темы: класс .theme-transitioning вешается в theme.js */
-.theme-transitioning *:not(input):not(textarea):not(kbd):not(.shortcut-kbd):not(.finger-range):not(.phalange-range):not(.metacarpal-range),
-.theme-transitioning *:not(input):not(textarea):not(kbd):not(.shortcut-kbd):not(.finger-range):not(.phalange-range):not(.metacarpal-range)::before,
-.theme-transitioning *:not(input):not(textarea):not(kbd):not(.shortcut-kbd):not(.finger-range):not(.phalange-range):not(.metacarpal-range)::after {
+.theme-transitioning *:not(input):not(textarea):not(kbd):not(.shortcut-kbd):not(.finger-range):not(.phalange-range):not(.metacarpal-range):not(.animation-timeline),
+.theme-transitioning *:not(input):not(textarea):not(kbd):not(.shortcut-kbd):not(.finger-range):not(.phalange-range):not(.metacarpal-range):not(.animation-timeline)::before,
+.theme-transitioning *:not(input):not(textarea):not(kbd):not(.shortcut-kbd):not(.finger-range):not(.phalange-range):not(.metacarpal-range):not(.animation-timeline)::after {
   transition:
     background-color var(--theme-speed) ease,
     background var(--theme-speed) ease,
@@ -169,7 +169,8 @@ html[data-theme="pink"] {
 .theme-transitioning .shortcut-kbd,
 .theme-transitioning .finger-range,
 .theme-transitioning .phalange-range,
-.theme-transitioning .metacarpal-range {
+.theme-transitioning .metacarpal-range,
+.theme-transitioning .animation-timeline {
   transition: none !important;
   animation: none !important;
 }
@@ -918,16 +919,44 @@ html[data-theme="light"] .side-shortcuts {
 .animation-item {
   width: 100%;
   min-height: 2rem;
-  padding: 0.45rem 0.6rem;
+  padding: 0.45rem 0.6rem 0.55rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg3);
   color: var(--text2);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.animation-play {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
   font-family: var(--mono);
   font-size: 0.68rem;
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0;
+}
+
+.animation-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.animation-duration {
+  color: var(--text3);
+  font-size: 0.6rem;
+  flex-shrink: 0;
 }
 
 .animation-item:hover {
@@ -939,6 +968,48 @@ html[data-theme="light"] .side-shortcuts {
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   background: var(--accent-soft);
   color: var(--accent);
+}
+
+.animation-item.active .animation-duration {
+  color: var(--accent);
+}
+
+.animation-timeline {
+  flex: 1;
+  min-width: 0;
+  height: 0.28rem;
+}
+
+.animation-timeline-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.animation-time {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2rem;
+  min-width: 4.8rem;
+  justify-content: flex-end;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+.animation-current-time {
+  color: var(--accent);
+}
+
+.animation-timeline::-webkit-slider-thumb {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
+.animation-timeline::-moz-range-thumb {
+  width: 0.7rem;
+  height: 0.7rem;
 }
 
 .animation-empty {
