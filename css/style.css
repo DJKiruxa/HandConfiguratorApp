@@ -1394,7 +1394,9 @@ html[data-theme="light"] .card {
   padding: var(--space-1) var(--space-2);
   border-radius: 5px;
   border: 1px solid var(--border);
-  pointer-events: none;
+  pointer-events: auto;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .scene-loading {
@@ -2087,7 +2089,7 @@ textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .hud-mono#fpsCounter { display: none; }
+  .hud-mono#fpsCounter { display: block; }
 
   .dash-scene,
   .scene-area--fill {

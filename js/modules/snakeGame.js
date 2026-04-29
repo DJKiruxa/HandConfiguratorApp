@@ -15,7 +15,7 @@ const MIN_COLS = 7;
 const MIN_ROWS = 7;
 const EASTER_SEQUENCE = 'game';
 const EASTER_TAPS = 5;
-const EASTER_TAP_WINDOW_MS = 1200;
+const EASTER_TAP_WINDOW_MS = 2200;
 
 function readPalette() {
   const cs = getComputedStyle(document.documentElement);
@@ -148,6 +148,8 @@ function initEasterEggLauncher() {
   };
 
   const logo = document.querySelector('.logo');
+  const fpsCounter = document.getElementById('fpsCounter');
+  const sceneToolbar = document.querySelector('.scene-toolbar');
   const onSecretTap = () => {
     if (document.querySelector('.snake-easter')) return;
     const now = performance.now();
@@ -165,9 +167,13 @@ function initEasterEggLauncher() {
 
   window.addEventListener('keydown', onSecretKey, true);
   logo?.addEventListener('pointerup', onSecretTap);
+  fpsCounter?.addEventListener('pointerup', onSecretTap, true);
+  sceneToolbar?.addEventListener('pointerup', onSecretTap, true);
   launcher = () => {
     window.removeEventListener('keydown', onSecretKey, true);
     logo?.removeEventListener('pointerup', onSecretTap);
+    fpsCounter?.removeEventListener('pointerup', onSecretTap, true);
+    sceneToolbar?.removeEventListener('pointerup', onSecretTap, true);
     launcher = null;
   };
   return launcher;

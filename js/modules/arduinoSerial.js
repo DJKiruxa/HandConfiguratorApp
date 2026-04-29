@@ -45,7 +45,7 @@ function setText(id, text) {
 function setConnectedUI(connected) {
   const btn = document.getElementById('arduinoConnectBtn');
   const stopBtn = document.getElementById('arduinoStopBtn');
-  if (btn) btn.textContent = connected ? 'отключить' : 'подключить COM4';
+  if (btn) btn.textContent = connected ? 'отключить' : 'подключить COM';
   if (stopBtn) stopBtn.disabled = !connected;
   setText(
     'arduinoStatus',
@@ -92,7 +92,7 @@ async function flushQueuedAngle(force = false) {
     lastSentAngle = angle;
     lastSendAt = performance.now();
     setText('arduinoAngleOut', `${angle}°`);
-    setText('arduinoStatus', `COM4 → ${angle}°`);
+    setText('arduinoStatus', `COM → ${angle}°`);
   }
 
   if (queuedAngle != null) {
@@ -134,14 +134,14 @@ async function connectArduino(toast) {
   }
 
   try {
-    // Браузер покажет список портов. Выбери Arduino / COM4.
+    // Браузер покажет список портов. Выбери Arduino / COM.
     port = await navigator.serial.requestPort();
     await port.open({ baudRate: BAUD_RATE });
     writer = port.writable.getWriter();
     isConnected = true;
     lastSentAngle = null;
     setConnectedUI(true);
-    toast?.('Arduino подключена. Если порт COM4 занят - закрой Serial Monitor.', { type: 'success' });
+    toast?.('Arduino подключена. Если порт COM занят - закрой Serial Monitor.', { type: 'success' });
 
     // Arduino часто перезагружается при открытии Serial.
     await sleep(1600);
@@ -149,7 +149,7 @@ async function connectArduino(toast) {
   } catch (err) {
     console.warn('Arduino connect error:', err);
     setText('arduinoStatus', 'не удалось подключить');
-    toast?.('Не удалось открыть COM4. Закрой Serial Monitor / Arduino IDE и попробуй снова.', { type: 'error' });
+    toast?.('Не удалось открыть COM. Закрой Serial Monitor / Arduino IDE и попробуй снова.', { type: 'error' });
     await disconnectArduino();
   }
 }
