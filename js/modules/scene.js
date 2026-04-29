@@ -11,6 +11,8 @@ import { getTheme } from './theme.js';
 
 const ARM_GLB = 'ARM.glb';
 const ARM_DIR = 'img/models/';
+const ARM_PRESET_SPLIT_SEC = 4;
+const ARM_PRESET_NAMES = ['Буква Г', 'Буква Ы'];
 const MAX_PHALANGE_BEND_RAD = Math.PI / 2;
 const MAX_METACARPAL_BEND_RAD = Math.PI / 2;
 const PHALANGE_BONES = [
@@ -90,6 +92,27 @@ function followMetacarpalCombo(percent) {
 function findBoneByName(skeleton, name) {
   const wanted = String(name).toLowerCase();
   return skeleton?.bones?.find((b) => String(b.name).toLowerCase() === wanted) || null;
+}
+
+function getAnimationGroupFrameRate(group) {
+  const fps = group?.targetedAnimations?.find((ta) => Number.isFinite(ta?.animation?.framePerSecond))
+    ?.animation?.framePerSecond;
+  return Number.isFinite(fps) && fps > 0 ? fps : 30;
+}
+
+function createArmAnimationPresets(groups) {
+  const sourceGroup = groups?.[0];
+  if (!sourceGroup) return [];
+
+  const splitFrame = sourceGroup.from + (ARM_PRESET_SPLIT_SEC * getAnimationGroupFrameRate(sourceGroup));
+  if (!Number.isFinite(splitFrame) || splitFrame >= sourceGroup.to) {
+    return groups;
+  }
+
+  return [
+    { name: ARM_PRESET_NAMES[0], group: sourceGroup, from: sourceGroup.from, to: splitFrame },
+    { name: ARM_PRESET_NAMES[1], group: sourceGroup, from: splitFrame, to: sourceGroup.to },
+  ];
 }
 
 export function createDashboardScene(canvas, opts = {}) {
@@ -244,17 +267,18 @@ export function createDashboardScene(canvas, opts = {}) {
   }
 
   function stopArmAnimations() {
-    armAnimationGroups.forEach((group) => group.stop());
+    armAnimationGroups.forEach((preset) => (preset.group || preset).stop());
     activeArmAnimationIndex = -1;
     notifyArmAnimationsChanged();
   }
 
   function playArmAnimation(index) {
-    const anim = armAnimationGroups[index];
+    const preset = armAnimationGroups[index];
+    const anim = preset?.group || preset;
     if (!anim) return false;
-    armAnimationGroups.forEach((group) => group.stop());
+    armAnimationGroups.forEach((item) => (item.group || item).stop());
     anim.reset();
-    anim.start(false, 1.0, anim.from, anim.to, false);
+    anim.start(false, 1.0, preset.from ?? anim.from, preset.to ?? anim.to, false);
     activeArmAnimationIndex = index;
     notifyArmAnimationsChanged();
     return true;
@@ -422,7 +446,7 @@ export function createDashboardScene(canvas, opts = {}) {
       const result = await BABYLON.SceneLoader.ImportMeshAsync('', ARM_DIR, ARM_GLB, scene);
       scene.stopAllAnimations();
       result.animationGroups?.forEach((group) => group.stop());
-      armAnimationGroups = result.animationGroups || [];
+      armAnimationGroups = createArmAnimationPresets(result.animationGroups || []);
       activeArmAnimationIndex = -1;
       notifyArmAnimationsChanged();
       result.skeletons?.forEach((sk) => scene.stopAnimation(sk));

@@ -99,7 +99,7 @@ function renderArmAnimationList(groups = [], activeIndex = -1) {
     button.type = 'button';
     button.className = `animation-item${index === activeIndex ? ' active' : ''}`;
     button.dataset.armAnimation = String(index);
-    button.textContent = index === 0 ? 'В Г Ы' : (group?.name || `Анимация ${index + 1}`);
+    button.textContent = group?.name || `Анимация ${index + 1}`;
     list.append(button);
   });
 }
