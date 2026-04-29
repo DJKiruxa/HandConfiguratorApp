@@ -13,8 +13,6 @@ const ARM_GLB = 'ARM.glb';
 const ARM_DIR = 'img/models/';
 const ARM_PRESET_SPLIT_SEC = 4;
 const ARM_PRESET_NAMES = ['Буква Г', 'Буква Ы'];
-const ARM_LETTER_G_HOLD_AT_SEC = 3;
-const ARM_LETTER_G_HOLD_DURATION_SEC = 2;
 const MAX_PHALANGE_BEND_RAD = Math.PI / 2;
 const MAX_METACARPAL_BEND_RAD = Math.PI / 2;
 const PHALANGE_BONES = [
@@ -102,50 +100,18 @@ function getAnimationGroupFrameRate(group) {
   return Number.isFinite(fps) && fps > 0 ? fps : 30;
 }
 
-function createArmAnimationPreset(group, name = group?.name, range = {}) {
-  const fps = getAnimationGroupFrameRate(group);
-  const from = Number.isFinite(range.from) ? range.from : Number.isFinite(group?.from) ? group.from : 0;
-  const to = Number.isFinite(range.to) ? range.to : Number.isFinite(group?.to) ? group.to : from;
-  const sourceDurationSec = Math.max(0, (to - from) / fps);
-  const holdAtSec = Number.isFinite(range.holdAtSec)
-    ? clamp(range.holdAtSec, 0, sourceDurationSec)
-    : null;
-  const holdDurationSec = holdAtSec === null ? 0 : Math.max(0, Number(range.holdDurationSec) || 0);
-  return {
-    name: name || group?.name || 'Анимация',
-    group,
-    from,
-    to,
-    fps,
-    sourceDurationSec,
-    holdAtSec,
-    holdDurationSec,
-    durationSec: sourceDurationSec + holdDurationSec,
-  };
-}
-
 function createArmAnimationPresets(groups) {
   const sourceGroup = groups?.[0];
   if (!sourceGroup) return [];
 
   const splitFrame = sourceGroup.from + (ARM_PRESET_SPLIT_SEC * getAnimationGroupFrameRate(sourceGroup));
   if (!Number.isFinite(splitFrame) || splitFrame >= sourceGroup.to) {
-    return groups.map((group) => createArmAnimationPreset(group));
+    return groups;
   }
 
   return [
-    createArmAnimationPreset(sourceGroup, ARM_PRESET_NAMES[0], {
-      from: sourceGroup.from,
-      to: splitFrame,
-      holdAtSec: ARM_LETTER_G_HOLD_AT_SEC,
-      holdDurationSec: ARM_LETTER_G_HOLD_DURATION_SEC,
-    }),
-    createArmAnimationPreset(sourceGroup, ARM_PRESET_NAMES[1], {
-      from: splitFrame,
-      to: sourceGroup.to,
-      holdAtSec: ARM_LETTER_G_HOLD_AT_SEC,
-      holdDurationSec: ARM_LETTER_G_HOLD_DURATION_SEC,
-    }),
+    { name: ARM_PRESET_NAMES[0], group: sourceGroup, from: sourceGroup.from, to: splitFrame },
+    { name: ARM_PRESET_NAMES[1], group: sourceGroup, from: splitFrame, to: sourceGroup.to },
   ];
 }
 
@@ -190,9 +156,8 @@ export function createDashboardScene(canvas, opts = {}) {
   const dir = new BABYLON.DirectionalLight('dashD', new BABYLON.Vector3(-0.45, -0.85, -0.3), scene);
   dir.intensity = 0.55;
 
-  const disposers = [];
   applySceneFromTheme();
-  disposers.push(on(EVENTS.THEME_CHANGED, () => requestAnimationFrame(applySceneFromTheme)));
+  on(EVENTS.THEME_CHANGED, () => requestAnimationFrame(applySceneFromTheme));
 
   let contentRoot = null;
   let lastAssemblyData = null;
@@ -201,11 +166,6 @@ export function createDashboardScene(canvas, opts = {}) {
   let activeHandPose = readStoredHandPose();
   let armAnimationGroups = [];
   let activeArmAnimationIndex = -1;
-  let activeArmAnimationProgress = 0;
-  let armAnimationProgressObs = null;
-  let armAnimationSequenceTimer = 0;
-  let armAnimationSequenceRunId = 0;
-  let disposed = false;
   let phalangeRig = [];
   let metacarpalRig = [];
   let rotationMechanismRig = [];
@@ -219,32 +179,6 @@ export function createDashboardScene(canvas, opts = {}) {
   const dashSceneById = (data, id) => normalizeAuthoring(data?.authoring).scenes.find((s) => s.id === id) || null;
   const dashClipById = (data, id) => normalizeAuthoring(data?.authoring).clips.find((c) => c.id === id) || null;
 
-  function hasTransformSnapshot(snap) {
-    return !!(snap && (snap.position || snap.rotation || snap.scaling));
-  }
-
-  function snapshotVec(source, fallback) {
-    const pick = (axis) => {
-      const value = Number(source?.[axis]);
-      return Number.isFinite(value) ? value : fallback[axis];
-    };
-    return { x: pick('x'), y: pick('y'), z: pick('z') };
-  }
-
-  function completeTransformSnapshot(node, snap) {
-    if (!node || !hasTransformSnapshot(snap)) return null;
-    return {
-      position: snapshotVec(snap.position, node.position),
-      rotation: snapshotVec(snap.rotation, node.rotation),
-      scaling: snapshotVec(snap.scaling, node.scaling),
-    };
-  }
-
-  function applyNodeTransformSnapshot(node, snap) {
-    const complete = completeTransformSnapshot(node, snap);
-    if (complete) applyTransformSnapshot(node, complete);
-  }
-
   function applyDashScenePayload(payload) {
     if (!payload?.camera) return false;
     applyCameraSnapshot(camera, payload.camera);
@@ -255,7 +189,7 @@ export function createDashboardScene(canvas, opts = {}) {
     const ch = contentRoot.children || [];
     for (let i = 0; i < ch.length && i < payload.parts.length; i++) {
       const tr = payload.parts[i].transform;
-      if (hasTransformSnapshot(tr)) applyNodeTransformSnapshot(ch[i], tr);
+      if (tr?.position) applyTransformSnapshot(ch[i], tr);
     }
     applyZoomLimits();
     return true;
@@ -274,13 +208,9 @@ export function createDashboardScene(canvas, opts = {}) {
     for (let i = 0; i < ch.length; i++) {
       const tra = getPartTransformForNodeInScene(a, ch[i], i);
       const trb = getPartTransformForNodeInScene(b, ch[i], i);
-      if (!hasTransformSnapshot(tra) && !hasTransformSnapshot(trb)) continue;
-      const lerped = lerpTransformSnapshot(
-        completeTransformSnapshot(ch[i], tra),
-        completeTransformSnapshot(ch[i], trb),
-        t,
-      );
-      applyNodeTransformSnapshot(ch[i], lerped);
+      if (!tra && !trb) continue;
+      const lerped = lerpTransformSnapshot(tra, trb, t);
+      if (lerped?.position) applyTransformSnapshot(ch[i], lerped);
     }
   }
 
@@ -333,139 +263,24 @@ export function createDashboardScene(canvas, opts = {}) {
   }
 
   function notifyArmAnimationsChanged() {
-    opts.onAnimationsChanged?.(armAnimationGroups, activeArmAnimationIndex, activeArmAnimationProgress);
-  }
-
-  function notifyArmAnimationProgress() {
-    const preset = armAnimationGroups[activeArmAnimationIndex];
-    const currentSec = Math.max(0, activeArmAnimationProgress * (Number(preset?.durationSec) || 0));
-    opts.onAnimationProgress?.(activeArmAnimationIndex, activeArmAnimationProgress, currentSec);
-  }
-
-  function clearArmAnimationProgressObserver() {
-    if (armAnimationProgressObs) {
-      scene.onBeforeRenderObservable.remove(armAnimationProgressObs);
-      armAnimationProgressObs = null;
-    }
-  }
-
-  function clearArmAnimationSequence() {
-    armAnimationSequenceRunId += 1;
-    if (armAnimationSequenceTimer) {
-      clearTimeout(armAnimationSequenceTimer);
-      armAnimationSequenceTimer = 0;
-    }
-  }
-
-  function getArmAnimationFrameAtProgress(preset, progress) {
-    const from = preset.from ?? preset.group?.from ?? 0;
-    const to = preset.to ?? preset.group?.to ?? from;
-    const sourceDurationSec = Number(preset.sourceDurationSec) || Math.max(0, (to - from) / (preset.fps || 30));
-    if (sourceDurationSec <= 0) return from;
-
-    const timelineSec = clamp(progress, 0, 1) * (Number(preset.durationSec) || sourceDurationSec);
-    let sourceSec = timelineSec;
-    if (Number.isFinite(preset.holdAtSec) && preset.holdDurationSec > 0) {
-      const holdStart = preset.holdAtSec;
-      const holdEnd = holdStart + preset.holdDurationSec;
-      if (timelineSec >= holdStart && timelineSec <= holdEnd) sourceSec = holdStart;
-      else if (timelineSec > holdEnd) sourceSec = timelineSec - preset.holdDurationSec;
-    }
-
-    return lerp(from, to, clamp(sourceSec / sourceDurationSec, 0, 1));
-  }
-
-  function prepareArmAnimationForScrub(preset) {
-    const anim = preset?.group || preset;
-    if (!anim) return null;
-    const from = preset.from ?? anim.from ?? 0;
-    const to = preset.to ?? anim.to ?? from;
-    anim.reset();
-    anim.start(false, 1.0, from, to, false);
-    anim.pause?.();
-    return anim;
+    opts.onAnimationsChanged?.(armAnimationGroups, activeArmAnimationIndex);
   }
 
   function stopArmAnimations() {
-    clearArmAnimationSequence();
-    clearArmAnimationProgressObserver();
     armAnimationGroups.forEach((preset) => (preset.group || preset).stop());
     activeArmAnimationIndex = -1;
-    activeArmAnimationProgress = 0;
     notifyArmAnimationsChanged();
-    notifyArmAnimationProgress();
   }
 
-  function playArmAnimation(index, options = {}) {
+  function playArmAnimation(index) {
     const preset = armAnimationGroups[index];
     const anim = preset?.group || preset;
     if (!anim) return false;
-    if (!options.fromSequence) clearArmAnimationSequence();
-    clearArmAnimationProgressObserver();
     armAnimationGroups.forEach((item) => (item.group || item).stop());
-    prepareArmAnimationForScrub(preset);
+    anim.reset();
+    anim.start(false, 1.0, preset.from ?? anim.from, preset.to ?? anim.to, false);
     activeArmAnimationIndex = index;
-    activeArmAnimationProgress = 0;
-    anim.goToFrame?.(getArmAnimationFrameAtProgress(preset, activeArmAnimationProgress));
     notifyArmAnimationsChanged();
-    notifyArmAnimationProgress();
-
-    const durationMs = Math.max(1, (Number(preset.durationSec) || 0) * 1000);
-    const startedAt = performance.now();
-    armAnimationProgressObs = scene.onBeforeRenderObservable.add(() => {
-      if (activeArmAnimationIndex !== index) {
-        clearArmAnimationProgressObserver();
-        return;
-      }
-      activeArmAnimationProgress = clamp((performance.now() - startedAt) / durationMs, 0, 1);
-      anim.goToFrame?.(getArmAnimationFrameAtProgress(preset, activeArmAnimationProgress));
-      notifyArmAnimationProgress();
-      if (activeArmAnimationProgress >= 1) clearArmAnimationProgressObserver();
-    });
-    return true;
-  }
-
-  function playArmAnimationSequence(indices = []) {
-    const queue = indices
-      .map((index) => Number(index))
-      .filter((index) => Number.isInteger(index) && armAnimationGroups[index]);
-    if (!queue.length) return false;
-
-    clearArmAnimationSequence();
-    const run = armAnimationSequenceRunId;
-    let cursor = 0;
-
-    const playNext = () => {
-      if (run !== armAnimationSequenceRunId) return;
-      const index = queue[cursor];
-      const preset = armAnimationGroups[index];
-      if (!preset || !playArmAnimation(index, { fromSequence: true })) return;
-      cursor += 1;
-      if (cursor >= queue.length) return;
-      const delayMs = Math.max(1, (Number(preset.durationSec) || 0) * 1000) + 80;
-      armAnimationSequenceTimer = setTimeout(playNext, delayMs);
-    };
-
-    playNext();
-    return true;
-  }
-
-  function seekArmAnimation(index, progress) {
-    const preset = armAnimationGroups[index];
-    const anim = preset?.group || preset;
-    if (!anim) return false;
-    clearArmAnimationSequence();
-    clearArmAnimationProgressObserver();
-    armAnimationGroups.forEach((item) => (item.group || item).stop());
-
-    const wasActive = activeArmAnimationIndex === index;
-    activeArmAnimationIndex = index;
-    activeArmAnimationProgress = clamp(Number(progress) || 0, 0, 1);
-    prepareArmAnimationForScrub(preset);
-    anim.goToFrame?.(getArmAnimationFrameAtProgress(preset, activeArmAnimationProgress));
-
-    if (!wasActive) notifyArmAnimationsChanged();
-    notifyArmAnimationProgress();
     return true;
   }
 
@@ -615,11 +430,8 @@ export function createDashboardScene(canvas, opts = {}) {
   async function reloadAssemblyFromStorage() {
     showLoading(true);
     disposeContent();
-    clearArmAnimationSequence();
-    clearArmAnimationProgressObserver();
     armAnimationGroups = [];
     activeArmAnimationIndex = -1;
-    activeArmAnimationProgress = 0;
     notifyArmAnimationsChanged();
     try {
       const raw = localStorage.getItem(ASSEMBLY_STORAGE_KEY);
@@ -646,7 +458,7 @@ export function createDashboardScene(canvas, opts = {}) {
       });
       if (!meshes.length) {
         showLoading(false);
-        requestAnimationFrame(() => { if (!disposed) engine.resize(); });
+        requestAnimationFrame(() => engine.resize());
         return;
       }
       contentRoot =
@@ -659,13 +471,13 @@ export function createDashboardScene(canvas, opts = {}) {
       console.warn('ARM.glb', e);
     } finally {
       showLoading(false);
-      requestAnimationFrame(() => { if (!disposed) engine.resize(); });
+      requestAnimationFrame(() => engine.resize());
     }
   }
 
   reloadAssemblyFromStorage();
 
-  disposers.push(on(EVENTS.HAND_POSE_CHANGED, ({ handPose } = {}) => applyHandPoseToRig(handPose)));
+  on(EVENTS.HAND_POSE_CHANGED, ({ handPose } = {}) => applyHandPoseToRig(handPose));
 
   if (opts.fpsEl) {
     let acc = 0;
@@ -675,43 +487,14 @@ export function createDashboardScene(canvas, opts = {}) {
     });
   }
 
-  let resizeRaf = 0;
-  let resizeObserver = null;
-  const renderScene = () => scene.render();
-  const resizeNow = () => {
-    resizeRaf = 0;
-    if (!disposed) engine.resize();
-  };
-  const scheduleResize = () => {
-    if (disposed || resizeRaf) return;
-    resizeRaf = requestAnimationFrame(resizeNow);
-  };
-
-  engine.runRenderLoop(renderScene);
-  window.addEventListener('resize', scheduleResize);
-  window.addEventListener('fullscreenchange', scheduleResize);
-  scheduleResize();
+  engine.runRenderLoop(() => scene.render());
+  const onResize = () => engine.resize();
+  window.addEventListener('resize', onResize);
+  requestAnimationFrame(onResize);
 
   if (typeof ResizeObserver !== 'undefined') {
-    resizeObserver = new ResizeObserver(scheduleResize);
-    if (canvas.parentElement) resizeObserver.observe(canvas.parentElement);
-  }
-
-  function dispose() {
-    if (disposed) return;
-    disposed = true;
-    clipRunId += 1;
-    clearArmAnimationSequence();
-    clearArmAnimationProgressObserver();
-    if (dashClipRenderObs) { scene.onBeforeRenderObservable.remove(dashClipRenderObs); dashClipRenderObs = null; }
-    if (resizeRaf) cancelAnimationFrame(resizeRaf);
-    resizeObserver?.disconnect();
-    window.removeEventListener('resize', scheduleResize);
-    window.removeEventListener('fullscreenchange', scheduleResize);
-    disposers.forEach((off) => off?.());
-    engine.stopRenderLoop(renderScene);
-    disposeContent();
-    engine.dispose();
+    const ro = new ResizeObserver(() => engine.resize());
+    if (canvas.parentElement) ro.observe(canvas.parentElement);
   }
 
   return {
@@ -723,10 +506,7 @@ export function createDashboardScene(canvas, opts = {}) {
     playClip,
     stopClipPlayback,
     playArmAnimation,
-    playArmAnimationSequence,
-    seekArmAnimation,
     stopArmAnimations,
-    dispose,
     applyHandPose: applyHandPoseToRig,
     resetCamera: () => {
       camera.alpha = -Math.PI / 2.35;

@@ -19,27 +19,25 @@
   <section id="view-dashboard" class="dashboard-grid">
 
     <aside class="dash-col dash-left">
-      <div class="card card--compact card--export">
-        <div class="card-header">
-          <div>
-            <div class="card-meta">экспорт</div>
-            <div class="card-title">JSON / экспорт</div>
+      <div class="card card--compact card--toolbar">
+        <div class="side-toolbar-brand">
+          <div class="logo">
+            <div class="logo-mark" aria-hidden="true"></div>
+            <span class="logo-text">BABYLON<span>_</span>PIPE</span>
           </div>
-          <div id="recipeStats" class="recipe-statline" aria-live="polite">—</div>
         </div>
-        <div class="divider"></div>
-        <div class="send-area send-area--export">
-          <textarea id="recipeOutput" placeholder="// handPose + assembly…" spellcheck="false" aria-label="экспорт"></textarea>
-          <div class="recipe-statline recipe-statline--tight">
-            <span id="recipeStatus" style="color:var(--accent)">—</span>
-          </div>
-          <div class="send-actions send-actions--export">
-            <div class="export-group">
-              <button type="button" class="btn" data-recipe-action="export-json">.json</button>
-              <button type="button" class="btn" data-recipe-action="export-txt">.txt</button>
-            </div>
-            <button type="button" class="btn btn-primary" data-recipe-action="refresh-output">↻</button>
-          </div>
+        <div class="side-shortcuts" id="shortcutsBar" aria-label="Горячие клавиши">
+          <div class="shortcut-row"><kbd class="shortcut-kbd">N</kbd><span class="shortcut-label">сброс пальцев</span></div>
+          <div class="shortcut-row"><kbd class="shortcut-kbd">T</kbd><span class="shortcut-label">тема</span></div>
+          <div class="shortcut-row"><kbd class="shortcut-kbd">?</kbd><span class="shortcut-label">подсказка</span></div>
+          <div class="shortcut-row"><kbd class="shortcut-kbd shortcut-kbd--wide">Ctrl+Z</kbd><span class="shortcut-label">отмена / повтор</span></div>
+          <div class="shortcut-row"><kbd class="shortcut-kbd">F</kbd><span class="shortcut-label">на весь экран</span></div>
+        </div>
+        <div class="side-toolbar-tools">
+          <button type="button" class="btn btn-ghost" data-action="toggle-theme" title="Тема (T)">тема</button>
+        </div>
+        <div class="side-toolbar-status">
+          <span class="status-dot" title="сессия"><span class="dot" aria-hidden="true"></span> сессия</span>
         </div>
       </div>
 
@@ -47,7 +45,7 @@
         <div class="card-header">
           <div>
             <div class="card-meta">импорт</div>
-            <div class="card-title">Импорт JSON</div>
+            <div class="card-title">JSON позы</div>
           </div>
         </div>
         <p class="card-hint card-hint--tight">Компактный JSON позы или старый <code>pipeline.handPose</code>.</p>
@@ -57,16 +55,46 @@
           </label>
         </div>
       </div>
+	  
+	  <div class="card card--compact arduino-card">
+        <div class="card-header">
+          <div>
+            <div class="card-meta">Arduino</div>
+            <div class="card-title">COM4 палец</div>
+          </div>
+          <span class="pill" id="arduinoAngleOut">—</span>
+        </div>
+
+        <p class="card-hint card-hint--tight">
+          Выбери палец, нажми подключить и в окне браузера выбери Arduino / COM4.
+        </p>
+
+        <label class="setting-item" style="cursor:default">
+          <span class="setting-label">палец</span>
+          <select id="arduinoFingerSelect" class="seq-select">
+            <option value="0">большой</option>
+            <option value="1">указат.</option>
+            <option value="2">средний</option>
+            <option value="3">безым.</option>
+            <option value="4">мизинец</option>
+          </select>
+        </label>
+
+        <div class="sliders-actions sliders-actions--tight">
+          <button type="button" class="btn btn-primary" id="arduinoConnectBtn">подключить COM4</button>
+          <button type="button" class="btn" id="arduinoStopBtn" disabled>stop / hold</button>
+        </div>
+
+        <div class="recipe-statline recipe-statline--tight">
+          <span id="arduinoStatus" style="color:var(--accent)">не подключено</span>
+        </div>
+      </div>
 
       <div class="card card--compact animations-card">
         <div class="card-header">
           <div>
             <div class="card-meta">ARM.glb</div>
             <div class="card-title">Анимации</div>
-          </div>
-          <div class="animation-header-actions">
-            <button type="button" class="animation-header-btn" id="animationSequenceToggle">очередь</button>
-            <button type="button" class="animation-header-btn animation-header-btn--play" id="animationSequencePlay" hidden>▶ очередь</button>
           </div>
         </div>
         <p class="card-hint card-hint--tight">Доступные клипы из модели.</p>
@@ -83,7 +111,6 @@
           <div class="scene-loading-inner">загрузка…</div>
         </div>
         <div class="scene-fps" id="fpsCounter">—</div>
-        <button type="button" class="scene-fullscreen-exit" data-dash-action="exit-fullscreen" aria-label="Выйти из полноэкранного режима">выйти</button>
         <canvas id="dashboardCanvas" data-engine-canvas></canvas>
       </div>
       <div class="scene-toolbar">
@@ -94,13 +121,6 @@
         <button type="button" class="btn" data-dash-action="reset-cam" title="Камера">⌖</button>
         <button type="button" class="btn" data-dash-action="stop-clip" title="Стоп">⏹</button>
         <button type="button" class="btn" data-dash-action="fullscreen" title="F">⛶</button>
-        <div class="scene-hints" aria-label="Горячие клавиши">
-          <span class="scene-hint"><kbd class="scene-hint-kbd">N</kbd>сброс</span>
-          <span class="scene-hint"><kbd class="scene-hint-kbd">T</kbd>тема</span>
-          <span class="scene-hint"><kbd class="scene-hint-kbd">?</kbd>подсказка</span>
-          <span class="scene-hint"><kbd class="scene-hint-kbd scene-hint-kbd--wide">Ctrl+Z/Y</kbd>отмена / повтор</span>
-          <span class="scene-hint"><kbd class="scene-hint-kbd">F</kbd>на весь экран</span>
-        </div>
       </div>
     </section>
 
@@ -114,40 +134,39 @@
           <span class="pill">-100–100%</span>
         </div>
         <p class="card-hint card-hint--tight">Угол/ход условно в % → компактный JSON позы в экспорте.</p>
-        <div class="pose-controls-scroll">
-          <div class="finger-list" id="fingerList">
-            <label class="finger-row" data-finger-name="большой">
-              <span class="finger-idx">1</span>
-              <span class="finger-label">большой</span>
-              <span class="finger-out">0</span>
-              <input id="f0" class="finger-range" type="range" min="-100" max="100" value="0" data-finger="0" />
-            </label>
-            <label class="finger-row" data-finger-name="указат.">
-              <span class="finger-idx">2</span>
-              <span class="finger-label">указат.</span>
-              <span class="finger-out">0</span>
-              <input id="f1" class="finger-range" type="range" min="-100" max="100" value="0" data-finger="1" />
-            </label>
-            <label class="finger-row" data-finger-name="средний">
-              <span class="finger-idx">3</span>
-              <span class="finger-label">средний</span>
-              <span class="finger-out">0</span>
-              <input id="f2" class="finger-range" type="range" min="-100" max="100" value="0" data-finger="2" />
-            </label>
-            <label class="finger-row" data-finger-name="безым.">
-              <span class="finger-idx">4</span>
-              <span class="finger-label">безым.</span>
-              <span class="finger-out">0</span>
-              <input id="f3" class="finger-range" type="range" min="-100" max="100" value="0" data-finger="3" />
-            </label>
-            <label class="finger-row" data-finger-name="мизинец">
-              <span class="finger-idx">5</span>
-              <span class="finger-label">мизинец</span>
-              <span class="finger-out">0</span>
-              <input id="f4" class="finger-range" type="range" min="-100" max="100" value="0" data-finger="4" />
-            </label>
-          </div>
-          <div class="phalange-space" aria-label="заготовка под фаланги">
+        <div class="finger-list" id="fingerList">
+          <label class="finger-row" data-finger-name="большой">
+            <span class="finger-idx">1</span>
+            <span class="finger-label">большой</span>
+            <span class="finger-out">0</span>
+            <input id="f0" class="finger-range" type="range" min="-100" max="100" value="0" data-finger="0" />
+          </label>
+          <label class="finger-row" data-finger-name="указат.">
+            <span class="finger-idx">2</span>
+            <span class="finger-label">указат.</span>
+            <span class="finger-out">0</span>
+            <input id="f1" class="finger-range" type="range" min="-100" max="100" value="0" data-finger="1" />
+          </label>
+          <label class="finger-row" data-finger-name="средний">
+            <span class="finger-idx">3</span>
+            <span class="finger-label">средний</span>
+            <span class="finger-out">0</span>
+            <input id="f2" class="finger-range" type="range" min="-100" max="100" value="0" data-finger="2" />
+          </label>
+          <label class="finger-row" data-finger-name="безым.">
+            <span class="finger-idx">4</span>
+            <span class="finger-label">безым.</span>
+            <span class="finger-out">0</span>
+            <input id="f3" class="finger-range" type="range" min="-100" max="100" value="0" data-finger="3" />
+          </label>
+          <label class="finger-row" data-finger-name="мизинец">
+            <span class="finger-idx">5</span>
+            <span class="finger-label">мизинец</span>
+            <span class="finger-out">0</span>
+            <input id="f4" class="finger-range" type="range" min="-100" max="100" value="0" data-finger="4" />
+          </label>
+        </div>
+        <div class="phalange-space" aria-label="заготовка под фаланги">
           <section class="phalange-group">
             <div class="phalange-title">Средние фаланги</div>
             <div class="phalange-grid">
@@ -242,10 +261,32 @@
               </label>
             </div>
           </section>
-          </div>
         </div>
         <div class="sliders-actions sliders-actions--tight">
-          <button type="button" class="btn" data-hand-action="pose-reset" title="Все в ноль">сброс</button>
+          <button type="button" class="btn" data-hand-action="pose-reset" title="Все в ноль">сброс 0</button>
+        </div>
+      </div>
+      <div class="card card--compact card--export">
+        <div class="card-header">
+          <div>
+            <div class="card-meta">экспорт</div>
+            <div class="card-title">JSON позы</div>
+          </div>
+          <div id="recipeStats" class="recipe-statline" aria-live="polite">—</div>
+        </div>
+        <div class="divider"></div>
+        <div class="send-area send-area--export">
+          <textarea id="recipeOutput" placeholder="// handPose + assembly…" spellcheck="false" aria-label="экспорт"></textarea>
+          <div class="recipe-statline recipe-statline--tight">
+            <span id="recipeStatus" style="color:var(--accent)">—</span>
+          </div>
+          <div class="send-actions send-actions--export">
+            <div class="export-group">
+              <button type="button" class="btn" data-recipe-action="export-json">.json</button>
+              <button type="button" class="btn" data-recipe-action="export-txt">.txt</button>
+            </div>
+            <button type="button" class="btn btn-primary" data-recipe-action="refresh-output">↻</button>
+          </div>
         </div>
       </div>
     </aside>
