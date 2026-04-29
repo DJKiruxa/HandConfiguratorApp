@@ -46,17 +46,33 @@
   --coral: #f06272;
   --header-bg: color-mix(in srgb, var(--bg) 85%, transparent);
   --grid-line: color-mix(in srgb, var(--nav-color) 5%, transparent);
-  --grid-cell: 40px;
-  --app-pad: clamp(0.25rem, 0.2rem + 0.45vw, 0.75rem);
-  --app-gap: clamp(0.25rem, 0.15rem + 0.45vw, 0.625rem);
-  --panel-min: clamp(12rem, 16vw, 18rem);
-  --scene-min: clamp(18rem, 44vh, 40rem);
-  --card-pad: clamp(0.5rem, 0.42rem + 0.35vw, 0.875rem);
-  --touch-hit: 2.75rem;
-  --control-font: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
-  --viewport-scale: 1;
-  --viewport-width: 100vw;
-  --viewport-height: 100dvh;
+  --grid-cell: clamp(1.75rem, 1.1rem + 1.35vw, 2.5rem);
+
+  /* Responsive scale */
+  --fs-2xs: clamp(0.6rem, 0.56rem + 0.12vw, 0.68rem);
+  --fs-xs: clamp(0.68rem, 0.62rem + 0.16vw, 0.78rem);
+  --fs-sm: clamp(0.76rem, 0.7rem + 0.18vw, 0.88rem);
+  --fs-md: clamp(0.88rem, 0.8rem + 0.22vw, 1rem);
+  --fs-lg: clamp(1rem, 0.9rem + 0.3vw, 1.18rem);
+
+  --space-1: clamp(0.25rem, 0.2rem + 0.16vw, 0.4rem);
+  --space-2: clamp(0.4rem, 0.32rem + 0.22vw, 0.625rem);
+  --space-3: clamp(0.625rem, 0.5rem + 0.32vw, 0.875rem);
+  --space-4: clamp(0.875rem, 0.7rem + 0.42vw, 1.25rem);
+  --space-5: clamp(1.125rem, 0.9rem + 0.58vw, 1.75rem);
+
+  --app-pad: clamp(0.375rem, 0.2rem + 0.55vw, 0.875rem);
+  --app-gap: var(--space-2);
+  --card-pad: clamp(0.55rem, 0.42rem + 0.4vw, 0.95rem);
+  --control-h: clamp(2.4rem, 2.15rem + 0.65vw, 3rem);
+  --touch-hit: var(--control-h);
+  --control-font: var(--fs-sm);
+
+  --panel-min: clamp(12rem, 16vw, 19rem);
+  --panel-left: minmax(min(100%, var(--panel-min)), 0.9fr);
+  --panel-center: minmax(min(100%, 22rem), 1.65fr);
+  --panel-right: minmax(min(100%, var(--panel-min)), 0.95fr);
+  --scene-min: clamp(19rem, 44vh, 42rem);
 }
 
 html[data-theme="light"] {
@@ -143,14 +159,13 @@ html[data-theme="pink"] {
   --grid-line: color-mix(in srgb, var(--nav-color) 6%, transparent);
 }
 
-/* 2K / 4K: rem */
-@media (min-width: 2200px) { html { font-size: 20px; } }
-@media (min-width: 3200px) { html { font-size: 24px; } }
+/* Fluid base type: rem grows gently, but never makes desktop text tiny. */
+html { font-size: clamp(16px, 0.45vw + 7px, 20px); }
 
 /* Плавная смена темы: класс .theme-transitioning вешается в theme.js */
-.theme-transitioning *:not(input):not(textarea):not(kbd):not(.shortcut-kbd):not(.finger-range):not(.phalange-range):not(.metacarpal-range):not(.animation-timeline),
-.theme-transitioning *:not(input):not(textarea):not(kbd):not(.shortcut-kbd):not(.finger-range):not(.phalange-range):not(.metacarpal-range):not(.animation-timeline)::before,
-.theme-transitioning *:not(input):not(textarea):not(kbd):not(.shortcut-kbd):not(.finger-range):not(.phalange-range):not(.metacarpal-range):not(.animation-timeline)::after {
+.theme-transitioning *:not(input):not(textarea):not(kbd):not(.finger-range):not(.phalange-range):not(.metacarpal-range):not(.animation-timeline),
+.theme-transitioning *:not(input):not(textarea):not(kbd):not(.finger-range):not(.phalange-range):not(.metacarpal-range):not(.animation-timeline)::before,
+.theme-transitioning *:not(input):not(textarea):not(kbd):not(.finger-range):not(.phalange-range):not(.metacarpal-range):not(.animation-timeline)::after {
   transition:
     background-color var(--theme-speed) ease,
     background var(--theme-speed) ease,
@@ -166,7 +181,6 @@ html[data-theme="pink"] {
 .theme-transitioning input,
 .theme-transitioning textarea,
 .theme-transitioning kbd,
-.theme-transitioning .shortcut-kbd,
 .theme-transitioning .finger-range,
 .theme-transitioning .phalange-range,
 .theme-transitioning .metacarpal-range,
@@ -230,14 +244,6 @@ body.app-body {
   overscroll-behavior: none;
 }
 
-body.app-body.is-viewport-scaled .app-main {
-  flex: 0 0 auto;
-  width: var(--viewport-width);
-  height: var(--viewport-height);
-  transform: scale(var(--viewport-scale));
-  transform-origin: top left;
-}
-
 body::before {
   content: '';
   position: fixed;
@@ -250,143 +256,21 @@ body::before {
   z-index: 0;
 }
 
-/* Шапка не используется — инструменты в .card--toolbar слева */
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Левый тулбар: логотип, шорткаты, акцент, тема */
-.card--toolbar {
-  flex-shrink: 0;
-  gap: 8px;
-}
-
-.side-toolbar-brand .logo-text { font-size: 13px; }
-
-/* Сводка шорткатов: сетка «клавиша | действие» */
-.side-shortcuts {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding: 0;
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.3;
-  color: var(--text2);
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-
-.shortcut-row {
-  display: grid;
-  grid-template-columns: minmax(4.5rem, auto) 1fr;
-  align-items: center;
-  gap: 0 10px;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--border);
-}
-
-.shortcut-row:last-child {
-  border-bottom: none;
-}
-
-.shortcut-kbd {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 2.5rem;
-  min-height: 1.6rem;
-  font-family: var(--mono);
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--bg2);
-  color: var(--text);
-  font-weight: 600;
-  box-sizing: border-box;
-}
-
-.shortcut-kbd--wide {
-  min-width: 3.5rem;
-  font-size: 9px;
-  padding: 2px 5px;
-}
-
-.shortcut-label {
-  font-size: 11px;
-  line-height: 1.3;
-  color: var(--text2);
-  word-break: break-word;
-}
-
-.side-toolbar-tools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.side-toolbar-status {
-  font-size: 11px;
-}
-
-.btn-ghost {
-  opacity: 0.9;
-  border-color: var(--border);
-  padding: 8px 12px;
-  font-size: 12px;
-}
-
-.logo-mark {
-  width: 28px;
-  height: 28px;
-  border: 1.5px solid var(--accent);
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.logo-mark::after {
-  content: '';
-  width: 10px;
-  height: 10px;
-  background: var(--accent);
-  border-radius: 2px;
-}
-
-.logo-text {
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  letter-spacing: 0.04em;
-}
-
-.logo-text span { color: var(--accent); }
-
 .header-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   flex-wrap: wrap;
   justify-content: flex-end;
 }
 
 .hud-mono {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-xs);
   color: var(--text3);
   min-width: 3.2rem;
   text-align: right;
-  padding: 4px 8px;
+  padding: var(--space-1) var(--space-2);
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg3);
@@ -397,9 +281,9 @@ body::before {
 .status-dot {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text2);
 }
 
@@ -436,20 +320,20 @@ body::before {
 
 .shortcuts-bar {
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: var(--fs-2xs);
   color: var(--text3);
   line-height: 1.5;
   padding: 0 2px 4px;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 12px;
+  gap: var(--space-1) var(--space-3);
   align-items: center;
 }
 
 .shortcuts-bar kbd {
   font: inherit;
-  font-size: 8px;
-  padding: 2px 5px;
+  font-size: var(--fs-2xs);
+  padding: 0.12rem var(--space-1);
   border-radius: 4px;
   border: 1px solid var(--border);
   background: var(--bg3);
@@ -461,10 +345,7 @@ body::before {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns:
-    minmax(min(100%, var(--panel-min)), 0.85fr)
-    minmax(min(100%, 20rem), 1.55fr)
-    minmax(min(100%, var(--panel-min)), 0.95fr);
+  grid-template-columns: var(--panel-left) var(--panel-center) var(--panel-right);
   grid-template-rows: 1fr;
   gap: var(--app-gap);
   align-items: stretch;
@@ -481,6 +362,17 @@ body::before {
 
 .dash-left > .card {
   flex-shrink: 0;
+}
+
+.dash-left > .card--export {
+  flex: 1 1 clamp(13rem, 30vh, 20rem);
+  min-height: clamp(13rem, 30vh, 20rem);
+}
+
+.dash-left > .animations-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Hidden snake easter egg */
@@ -511,7 +403,7 @@ body::before {
   gap: 1rem;
   color: var(--text2);
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: var(--fs-sm);
   text-transform: uppercase;
   letter-spacing: 0.14em;
 }
@@ -540,7 +432,7 @@ body::before {
   margin: 0;
   color: var(--text2);
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: var(--fs-sm);
   text-align: center;
 }
 
@@ -657,46 +549,46 @@ body::before {
 .scene-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-1);
   flex-shrink: 0;
 }
 
 .row-top {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .row-bot {
   display: grid;
   grid-template-columns: 1.6fr 1fr;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .card {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: clamp(0.75rem, 0.55rem + 0.55vw, 1rem);
+  padding: var(--space-4);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
   transition: border-color 0.2s;
   animation: fadeUp 0.3s ease both;
 }
 
 .card--compact {
   padding: var(--card-pad);
-  gap: 6px;
+  gap: var(--space-2);
   border-radius: var(--radius);
 }
 
-.card--compact .card-title { font-size: 12px; }
-.card--compact .card-meta { font-size: 8px; margin-bottom: 0; }
+.card--compact .card-title { font-size: var(--fs-sm); }
+.card--compact .card-meta { font-size: var(--fs-2xs); margin-bottom: 0; }
 .card--compact .divider { margin: 0; }
 
 .card-hint--tight {
-  font-size: 8px;
+  font-size: var(--fs-2xs);
   line-height: 1.35;
   margin: -2px 0 2px;
 }
@@ -722,19 +614,18 @@ body::before {
 
 .pill {
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: var(--fs-2xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text3);
   border: 1px solid var(--border);
-  padding: 2px 6px;
+  padding: 0.12rem var(--space-1);
   border-radius: 999px;
 }
 
 .card:hover { border-color: var(--border-hover); }
 
-html[data-theme="light"] .card,
-html[data-theme="light"] .side-shortcuts {
+html[data-theme="light"] .card {
   box-shadow: 0 0.0625rem 0.25rem rgba(80, 50, 10, 0.08), 0 0.25rem 1rem rgba(80, 50, 10, 0.06);
 }
 
@@ -746,12 +637,12 @@ html[data-theme="light"] .side-shortcuts {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .card-meta {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-xs);
   color: var(--text3);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -759,14 +650,14 @@ html[data-theme="light"] .side-shortcuts {
 }
 
 .card-title {
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-weight: 600;
   color: var(--text);
 }
 
 .card-hint {
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: var(--fs-xs);
   color: var(--text3);
   line-height: 1.45;
   margin: -4px 0 4px;
@@ -774,12 +665,12 @@ html[data-theme="light"] .side-shortcuts {
 
 .divider { height: 1px; background: var(--border); }
 
-.seq-list--tight { gap: 4px; }
+.seq-list--tight { gap: var(--space-1); }
 
 .seq-list {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--space-1);
   flex: 1;
   min-height: 0;
 }
@@ -788,8 +679,8 @@ html[data-theme="light"] .side-shortcuts {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 6px;
-  padding: 8px 10px;
+  gap: var(--space-2);
+  padding: var(--space-2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
@@ -818,7 +709,7 @@ html[data-theme="light"] .side-shortcuts {
 .seq-handle {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0.12rem;
   opacity: 0.3;
   cursor: grab;
 }
@@ -842,7 +733,7 @@ html[data-theme="light"] .side-shortcuts {
 
 .seq-name {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text2);
   flex: 1;
   min-width: 0;
@@ -852,10 +743,10 @@ html[data-theme="light"] .side-shortcuts {
 
 .seq-time {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text3);
   background: var(--bg3);
-  padding: 2px 7px;
+  padding: 0.12rem var(--space-2);
   border-radius: 4px;
   border: 1px solid var(--border);
 }
@@ -864,12 +755,12 @@ html[data-theme="light"] .side-shortcuts {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 7px;
+  gap: var(--space-1);
+  padding: var(--space-2);
   border: 1px dashed var(--border-hover);
   border-radius: var(--radius);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text3);
   cursor: pointer;
   background: transparent;
@@ -882,22 +773,22 @@ html[data-theme="light"] .side-shortcuts {
 }
 
 .seq-add--tight {
-  padding: 5px;
-  font-size: 10px;
+  padding: var(--space-1);
+  font-size: var(--fs-xs);
 }
 
-.settings-area--tight { gap: 4px; }
+.settings-area--tight { gap: var(--space-1); }
 .settings-area--tight .setting-item {
-  padding: 6px 8px;
+  padding: var(--space-2);
 }
 
-.sliders-grid--tight { gap: 6px; }
-.sliders-grid--tight .slider-group { gap: 2px; }
-.sliders-grid--tight .slider-label { font-size: 10px; }
+.sliders-grid--tight { gap: var(--space-2); }
+.sliders-grid--tight .slider-group { gap: var(--space-1); }
+.sliders-grid--tight .slider-label { font-size: var(--fs-xs); }
 
 .sliders-actions--tight {
   margin-top: 0;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .sliders-actions--tight .btn {
@@ -913,19 +804,19 @@ html[data-theme="light"] .side-shortcuts {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.35rem;
+  gap: var(--space-1);
   flex-wrap: wrap;
 }
 
 .animation-header-btn {
-  min-height: 1.55rem;
-  padding: 0.25rem 0.45rem;
+  min-height: calc(var(--touch-hit) * 0.68);
+  padding: var(--space-1) var(--space-2);
   border: 1px solid var(--border);
   border-radius: 0.4rem;
   background: var(--bg3);
   color: var(--text2);
   font-family: var(--mono);
-  font-size: 0.55rem;
+  font-size: var(--fs-xs);
   cursor: pointer;
 }
 
@@ -939,21 +830,21 @@ html[data-theme="light"] .side-shortcuts {
 .animation-list {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-1);
   min-height: 0;
 }
 
 .animation-item {
   width: 100%;
   min-height: 2rem;
-  padding: 0.45rem 0.6rem 0.55rem;
+  padding: var(--space-2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg3);
   color: var(--text2);
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: var(--space-1);
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
@@ -963,13 +854,13 @@ html[data-theme="light"] .side-shortcuts {
   background: transparent;
   color: inherit;
   font-family: var(--mono);
-  font-size: 0.68rem;
+  font-size: var(--fs-sm);
   text-align: left;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: var(--space-2);
   padding: 0;
 }
 
@@ -982,7 +873,7 @@ html[data-theme="light"] .side-shortcuts {
 
 .animation-duration {
   color: var(--text3);
-  font-size: 0.6rem;
+  font-size: var(--fs-xs);
   flex-shrink: 0;
 }
 
@@ -1010,7 +901,7 @@ html[data-theme="light"] .side-shortcuts {
 .animation-timeline-row {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: var(--space-2);
 }
 
 .animation-time {
@@ -1020,7 +911,7 @@ html[data-theme="light"] .side-shortcuts {
   min-width: 4.8rem;
   justify-content: flex-end;
   font-family: var(--mono);
-  font-size: 0.58rem;
+  font-size: var(--fs-xs);
   color: var(--text3);
   white-space: nowrap;
 }
@@ -1033,16 +924,16 @@ html[data-theme="light"] .side-shortcuts {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  padding-bottom: 0.15rem;
+  gap: var(--space-2);
+  padding-bottom: var(--space-1);
 }
 
 .animation-sequence-select {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: var(--space-1);
   font-family: var(--mono);
-  font-size: 0.58rem;
+  font-size: var(--fs-xs);
   color: var(--text3);
   cursor: pointer;
 }
@@ -1055,18 +946,18 @@ html[data-theme="light"] .side-shortcuts {
 
 .animation-sequence-controls {
   display: inline-flex;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 
 .animation-sequence-move {
-  width: 1.35rem;
-  height: 1.25rem;
+  width: calc(var(--touch-hit) * 0.55);
+  height: calc(var(--touch-hit) * 0.52);
   border: 1px solid var(--border);
   border-radius: 0.35rem;
   background: var(--bg);
   color: var(--text2);
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--fs-xs);
   cursor: pointer;
 }
 
@@ -1091,12 +982,12 @@ html[data-theme="light"] .side-shortcuts {
 }
 
 .animation-empty {
-  padding: 0.5rem 0.6rem;
+  padding: var(--space-2);
   border: 1px dashed var(--border);
   border-radius: var(--radius);
   color: var(--text3);
   font-family: var(--mono);
-  font-size: 0.62rem;
+  font-size: var(--fs-xs);
 }
 
 .seq-item .seq-done {
@@ -1107,7 +998,7 @@ html[data-theme="light"] .side-shortcuts {
   background: var(--bg3);
   flex-shrink: 0;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   line-height: 20px;
   text-align: center;
   color: var(--text3);
@@ -1119,12 +1010,12 @@ html[data-theme="light"] .side-shortcuts {
   color: var(--green);
 }
 
-.seq-row-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.seq-row-actions { display: flex; gap: var(--space-1); flex-shrink: 0; }
 
 .seq-row-actions button {
   font-family: var(--mono);
-  font-size: 9px;
-  padding: 2px 5px;
+  font-size: var(--fs-2xs);
+  padding: 0.12rem var(--space-1);
   border-radius: 4px;
   border: 1px solid var(--border);
   background: var(--bg3);
@@ -1140,7 +1031,7 @@ html[data-theme="light"] .side-shortcuts {
 .seq-row-main {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2);
   width: 100%;
 }
 
@@ -1148,16 +1039,16 @@ html[data-theme="light"] .side-shortcuts {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
   width: 100%;
   padding-left: 26px;
 }
 
 .seq-select {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-xs);
   max-width: 132px;
-  padding: 3px 6px;
+  padding: var(--space-1) var(--space-2);
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--bg3);
@@ -1166,8 +1057,8 @@ html[data-theme="light"] .side-shortcuts {
 
 .seq-preview-btn {
   font-family: var(--mono);
-  font-size: 10px;
-  padding: 3px 8px;
+  font-size: var(--fs-xs);
+  padding: var(--space-1) var(--space-2);
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--bg3);
@@ -1181,14 +1072,14 @@ html[data-theme="light"] .side-shortcuts {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .setting-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg3);
@@ -1203,7 +1094,7 @@ html[data-theme="light"] .side-shortcuts {
 
 .setting-label {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text2);
 }
 
@@ -1249,11 +1140,11 @@ html[data-theme="light"] .side-shortcuts {
 
 .finger-row {
   display: grid;
-  grid-template-columns: 16px 1fr 22px;
+  grid-template-columns: 1rem 1fr 1.5rem;
   grid-template-rows: auto auto;
   align-items: center;
-  gap: 2px 6px;
-  padding: 5px 0;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-1) 0;
   border-bottom: 1px solid var(--border);
   cursor: default;
   margin: 0;
@@ -1263,7 +1154,7 @@ html[data-theme="light"] .side-shortcuts {
 
 .finger-idx {
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: var(--fs-2xs);
   color: var(--text3);
   text-align: center;
   grid-row: 1;
@@ -1271,7 +1162,7 @@ html[data-theme="light"] .side-shortcuts {
 
 .finger-label {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-xs);
   color: var(--text2);
   grid-row: 1;
   min-width: 0;
@@ -1279,7 +1170,7 @@ html[data-theme="light"] .side-shortcuts {
 
 .finger-out {
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: var(--fs-2xs);
   color: var(--accent);
   text-align: right;
   grid-row: 1;
@@ -1301,26 +1192,32 @@ html[data-theme="light"] .side-shortcuts {
 #fingerPanel { flex-shrink: 0; }
 
 #fingerPanel.pose-card {
-  flex: 1 1 62%;
+  flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
 }
 
 .pose-card .sliders-actions {
   flex-shrink: 0;
+  margin-top: auto;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding-top: var(--space-2);
+  background: var(--bg2);
 }
 
 .phalange-space {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: var(--space-2);
   min-height: 0;
 }
 
 .phalange-group {
   border: 1px dashed var(--border);
   border-radius: var(--radius);
-  padding: 6px;
+  padding: var(--space-2);
   background: color-mix(in srgb, var(--bg3) 45%, transparent);
 }
 
@@ -1330,15 +1227,15 @@ html[data-theme="light"] .side-shortcuts {
 
 .phalange-title {
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: var(--fs-2xs);
   color: var(--text3);
-  margin-bottom: 5px;
+  margin-bottom: var(--space-1);
 }
 
 .phalange-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .metacarpal-grid {
@@ -1347,12 +1244,12 @@ html[data-theme="light"] .side-shortcuts {
 
 .phalange-row {
   display: grid;
-  grid-template-columns: 1fr 24px;
+  grid-template-columns: 1fr 1.7rem;
   grid-template-rows: auto auto;
   align-items: center;
-  gap: 3px 6px;
-  min-height: 42px;
-  padding: 5px 6px;
+  gap: var(--space-1) var(--space-2);
+  min-height: calc(var(--touch-hit) * 0.9);
+  padding: var(--space-1) var(--space-2);
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg);
@@ -1366,7 +1263,7 @@ html[data-theme="light"] .side-shortcuts {
 .phalange-label,
 .phalange-out {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-xs);
 }
 
 .phalange-label {
@@ -1430,14 +1327,14 @@ html[data-theme="light"] .side-shortcuts {
 
 .scene-fps {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: var(--space-2);
+  right: var(--space-2);
   z-index: 3;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: var(--fs-2xs);
   color: var(--text2);
   background: color-mix(in srgb, var(--bg) 80%, transparent);
-  padding: 3px 7px;
+  padding: var(--space-1) var(--space-2);
   border-radius: 5px;
   border: 1px solid var(--border);
   pointer-events: none;
@@ -1458,9 +1355,9 @@ html[data-theme="light"] .side-shortcuts {
 
 .scene-loading-inner {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text2);
-  padding: 12px 18px;
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--bg2);
@@ -1469,10 +1366,10 @@ html[data-theme="light"] .side-shortcuts {
 
 .scene-placeholder {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text3);
   text-align: center;
-  padding: 20px;
+  padding: var(--space-4);
 }
 
 .scene-placeholder span {
@@ -1485,13 +1382,13 @@ html[data-theme="light"] .side-shortcuts {
 .scene-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .btn {
   font-family: var(--mono);
   font-size: var(--control-font);
-  padding: 0.625rem clamp(0.75rem, 0.6rem + 0.5vw, 1rem);
+  padding: var(--space-2) var(--space-3);
   min-height: var(--touch-hit);
   border-radius: 8px;
   border: 1px solid var(--border-hover);
@@ -1520,14 +1417,14 @@ html[data-theme="light"] .side-shortcuts {
 
 html[data-theme="light"] .btn-primary:hover { filter: brightness(0.95); }
 
-.btn-sm { padding: 8px 12px; font-size: 12px; min-height: 36px; }
+.btn-sm { padding: var(--space-2) var(--space-3); font-size: var(--fs-sm); min-height: calc(var(--touch-hit) * 0.85); }
 
 /* Кнопки сцены — чуть крупнее тач-зона */
 .scene-toolbar .btn {
   min-width: var(--touch-hit);
   min-height: var(--touch-hit);
-  padding: 0 12px;
-  font-size: 16px;
+  padding: 0 var(--space-3);
+  font-size: 1rem;
   line-height: 1;
   display: inline-flex;
   align-items: center;
@@ -1536,12 +1433,12 @@ html[data-theme="light"] .btn-primary:hover { filter: brightness(0.95); }
 
 .recipe-statline {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-xs);
   color: var(--text3);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1);
 }
 
 #recipeStats b { color: var(--text); }
@@ -1549,23 +1446,23 @@ html[data-theme="light"] .btn-primary:hover { filter: brightness(0.95); }
 .sliders-grid {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-3);
   flex: 1;
 }
 
-.slider-group { display: flex; flex-direction: column; gap: 5px; }
+.slider-group { display: flex; flex-direction: column; gap: var(--space-1); }
 
 .slider-top { display: flex; justify-content: space-between; align-items: center; }
 
 .slider-label {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text2);
 }
 
 .slider-val {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--accent);
   min-width: 28px;
   text-align: right;
@@ -1628,7 +1525,6 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
     min-height: var(--touch-hit);
   }
 
-  .side-toolbar-tools .btn,
   .send-actions .btn,
   .sliders-actions .btn {
     min-height: var(--touch-hit);
@@ -1643,89 +1539,86 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   }
 }
 
-.sliders-actions { display: flex; gap: 8px; margin-top: 4px; }
+.sliders-actions { display: flex; gap: var(--space-2); margin-top: var(--space-1); }
 
-.send-area { display: flex; flex-direction: column; gap: 10px; flex: 1; }
-.send-area--tight { gap: 6px; min-height: 0; }
+.send-area { display: flex; flex-direction: column; gap: var(--space-3); flex: 1; }
+.send-area--tight { gap: var(--space-2); min-height: 0; }
 .send-area--tight textarea {
   min-height: 72px;
   max-height: 140px;
-  padding: 8px;
-  font-size: 10px;
+  padding: var(--space-2);
+  font-size: var(--fs-xs);
   line-height: 1.45;
 }
-.send-actions--tight { gap: 4px; }
-.send-actions--tight .btn { padding: 4px 8px; }
-.recipe-statline--tight { font-size: 9px; }
-.card--export { min-height: 0; }
-
-/* Экспорт держим ниже, чтобы в панели позы помещалась кнопка сброса. */
-.dash-right .card--export {
-  flex: 0 1 38%;
+.send-actions--tight { gap: var(--space-1); }
+.send-actions--tight .btn { padding: var(--space-1) var(--space-2); }
+.recipe-statline--tight { font-size: var(--fs-2xs); }
+.card--export {
+  flex: 0 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
-.dash-right .card--export .card-header {
+.card--export .card-header {
   flex-shrink: 0;
   align-items: center;
 }
-.dash-right .card--export .card-title {
-  font-size: 14px;
+.card--export .card-title {
+  font-size: var(--fs-md);
 }
-.dash-right .card--export #recipeStats,
-.dash-right .card--export .recipe-statline {
-  font-size: 12px;
+.card--export #recipeStats,
+.card--export .recipe-statline {
+  font-size: var(--fs-sm);
   line-height: 1.35;
 }
-.dash-right .card--export .send-area--export,
-.dash-right .card--export .send-area {
+.card--export .send-area--export,
+.card--export .send-area {
   flex: 1 1 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   overflow: hidden;
 }
-.dash-right .card--export textarea#recipeOutput {
+.card--export textarea#recipeOutput {
   flex: 1 1 0;
-  min-height: 0;
+  min-height: clamp(6rem, 16vh, 12rem);
   max-height: none;
   width: 100%;
-  height: 100%;
+  height: auto;
   resize: none;
-  padding: 12px 14px;
-  font-size: 12px;
+  padding: var(--space-3);
+  font-size: var(--fs-sm);
   line-height: 1.55;
   tab-size: 2;
   overflow: auto;
 }
-.dash-right .card--export .recipe-statline--tight {
-  font-size: 11px;
+.card--export .recipe-statline--tight {
+  font-size: var(--fs-xs);
   flex-shrink: 0;
 }
-.dash-right .card--export #recipeStatus {
-  font-size: 12px;
+.card--export #recipeStatus {
+  font-size: var(--fs-sm);
 }
-.dash-right .card--export .send-actions--export,
-.dash-right .card--export .send-actions {
+.card--export .send-actions--export,
+.card--export .send-actions {
   flex-shrink: 0;
-  gap: 8px;
+  gap: var(--space-2);
 }
-.dash-right .card--export .send-actions--export .btn,
-.dash-right .card--export .send-actions .btn {
+.card--export .send-actions--export .btn,
+.card--export .send-actions .btn {
   min-height: var(--touch-hit);
-  padding: 10px 18px;
-  font-size: 13px;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--fs-sm);
 }
-.dash-right .card--export .export-group {
+.card--export .export-group {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   flex: 1;
   flex-wrap: wrap;
 }
-.dash-right .card--export .export-group .btn {
+.card--export .export-group .btn {
   flex: 1 1 auto;
   min-width: 100px;
 }
@@ -1738,25 +1631,24 @@ textarea {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 12px;
+  padding: var(--space-3);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text);
   outline: none;
   transition: border-color 0.15s;
   line-height: 1.6;
 }
 
-#recipeOutput,
-.dash-right .card--export #recipeOutput {
+#recipeOutput {
   max-height: none;
 }
 
 textarea::placeholder { color: var(--text3); }
 textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
 
-.send-actions { display: flex; gap: 8px; }
-.export-group { display: flex; gap: 6px; }
+.send-actions { display: flex; gap: var(--space-2); }
+.export-group { display: flex; gap: var(--space-2); }
 
 ::-webkit-scrollbar { width: 0.3125rem; height: 0.3125rem; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -1770,27 +1662,27 @@ textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent
 /* Toasts (JS appends to .toast-layer) */
 .toast-layer {
   position: fixed;
-  right: 16px;
-  bottom: 16px;
+  right: var(--space-4);
+  bottom: var(--space-4);
   z-index: 2000;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  max-width: min(360px, calc(100vw - 32px));
+  gap: var(--space-2);
+  max-width: min(22.5rem, calc(100vw - (var(--space-4) * 2)));
   pointer-events: none;
 }
 
 .toast {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text);
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 10px 12px;
+  padding: var(--space-2) var(--space-3);
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: var(--space-2);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
   opacity: 0;
   transform: translateX(8px);
@@ -1808,157 +1700,47 @@ textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent
 .toast-warn    { border-color: color-mix(in srgb, var(--amber) 50%, var(--border)); }
 
 @media (max-width: 1200px) {
+  :root {
+    --panel-min: clamp(10.5rem, 14vw, 16rem);
+    --panel-left: minmax(min(100%, var(--panel-min)), 0.82fr);
+    --panel-center: minmax(min(100%, 18rem), 1.45fr);
+    --panel-right: minmax(min(100%, var(--panel-min)), 0.9fr);
+  }
+
   .row-top { grid-template-columns: 1fr 1fr; }
   .row-top .card:last-child { grid-column: 1 / -1; }
-  .dashboard-grid {
-    grid-template-columns:
-      minmax(min(100%, 11rem), 0.8fr)
-      minmax(min(100%, 18rem), 1.45fr)
-      minmax(min(100%, 11rem), 0.9fr);
-  }
 }
 
-@media (max-width: 1920px), (max-height: 1080px) {
+@media (max-width: 1600px), (max-height: 900px) {
   :root {
-    --app-pad: clamp(0.25rem, 0.16rem + 0.28vw, 0.5rem);
-    --app-gap: clamp(0.25rem, 0.14rem + 0.28vw, 0.5rem);
+    --app-pad: clamp(0.25rem, 0.16rem + 0.28vw, 0.55rem);
+    --app-gap: clamp(0.25rem, 0.16rem + 0.25vw, 0.5rem);
+    --space-2: clamp(0.34rem, 0.28rem + 0.16vw, 0.5rem);
+    --space-3: clamp(0.5rem, 0.42rem + 0.22vw, 0.75rem);
+    --space-4: clamp(0.65rem, 0.5rem + 0.32vw, 1rem);
     --panel-min: clamp(10rem, 13.5vw, 15rem);
+    --panel-center: minmax(min(100%, 18rem), 1.7fr);
     --scene-min: clamp(16rem, 40vh, 34rem);
-    --card-pad: clamp(0.45rem, 0.34rem + 0.24vw, 0.7rem);
-    --touch-hit: 2.35rem;
-    --control-font: clamp(0.68rem, 0.62rem + 0.18vw, 0.78rem);
-    --grid-cell: 32px;
-  }
-
-  .dashboard-grid {
-    grid-template-columns:
-      minmax(min(100%, 10rem), 0.78fr)
-      minmax(min(100%, 18rem), 1.72fr)
-      minmax(min(100%, 10rem), 0.86fr);
-  }
-
-  .card {
-    gap: 0.5rem;
-  }
-
-  .card--compact,
-  .card--toolbar {
-    gap: 0.25rem;
-  }
-
-  .side-shortcuts,
-  .shortcut-label,
-  .status-dot {
-    font-size: 0.625rem;
-  }
-
-  .shortcut-row {
-    grid-template-columns: minmax(3.4rem, auto) 1fr;
-    gap: 0 0.375rem;
-    padding: 0.25rem 0.45rem;
-  }
-
-  .shortcut-kbd {
-    min-width: 2rem;
-    min-height: 1.35rem;
-    font-size: 0.56rem;
-    padding: 0.1rem 0.3rem;
-  }
-
-  .shortcut-kbd--wide {
-    min-width: 3rem;
-    font-size: 0.5rem;
-  }
-
-  .logo-mark {
-    width: 1.5rem;
-    height: 1.5rem;
-  }
-
-  .logo-text,
-  .side-toolbar-brand .logo-text {
-    font-size: 0.7rem;
-  }
-
-  .card--compact .card-title,
-  .card-title {
-    font-size: 0.72rem;
-  }
-
-  .card-meta,
-  .card--compact .card-meta,
-  .card-hint,
-  .card-hint--tight,
-  .pill {
-    font-size: 0.55rem;
+    --card-pad: clamp(0.45rem, 0.34rem + 0.24vw, 0.72rem);
+    --touch-hit: clamp(2.35rem, 2.15rem + 0.4vw, 2.65rem);
+    --grid-cell: 2rem;
   }
 
   .finger-row {
     grid-template-columns: 0.9rem 1fr 1.35rem;
-    gap: 0.1rem 0.35rem;
-    padding: 0.2rem 0;
-  }
-
-  .finger-idx,
-  .finger-out,
-  .phalange-title {
-    font-size: 0.55rem;
-  }
-
-  .finger-label,
-  .phalange-label,
-  .phalange-out {
-    font-size: 0.62rem;
-  }
-
-  .phalange-space {
-    gap: 0.3rem;
-  }
-
-  .phalange-group {
-    padding: 0.3rem;
-  }
-
-  .phalange-grid {
-    gap: 0.25rem;
   }
 
   .metacarpal-grid {
     grid-template-columns: 1fr;
   }
-
-  .phalange-row {
-    min-height: 2.1rem;
-    padding: 0.25rem 0.35rem;
-  }
-
-  .scene-toolbar .btn {
-    min-width: var(--touch-hit);
-    min-height: var(--touch-hit);
-    padding: 0 0.6rem;
-    font-size: 0.9rem;
-  }
-
-  .dash-right .card--export .send-actions--export .btn,
-  .dash-right .card--export .send-actions .btn {
-    min-height: var(--touch-hit);
-    padding: 0.5rem 0.8rem;
-    font-size: 0.72rem;
-  }
-
-  .dash-right .card--export textarea#recipeOutput {
-    padding: 0.55rem 0.65rem;
-    font-size: 0.68rem;
-    line-height: 1.45;
-  }
 }
 
 @media (max-height: 900px) and (min-width: 1001px) {
   :root {
-    --app-pad: 0.25rem;
-    --app-gap: 0.25rem;
-    --card-pad: 0.42rem;
-    --touch-hit: 2.1rem;
+    --app-pad: var(--space-1);
+    --app-gap: var(--space-1);
+    --card-pad: clamp(0.42rem, 0.32rem + 0.18vw, 0.62rem);
+    --touch-hit: clamp(2.3rem, 2.1rem + 0.28vw, 2.55rem);
   }
 
   .card-hint,
@@ -1968,31 +1750,27 @@ textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent
   }
 
   .scene-toolbar {
-    gap: 0.25rem;
+    gap: var(--space-1);
   }
 
   #fingerPanel.pose-card {
-    flex-basis: 68%;
-  }
-
-  .dash-right .card--export {
-    flex-basis: 32%;
+    flex-basis: auto;
   }
 }
 
 @media (max-width: 1000px) {
+  :root {
+    --app-pad: var(--space-2);
+    --app-gap: var(--space-2);
+    --scene-min: clamp(18rem, 52dvh, 34rem);
+  }
+
   body.app-body {
     height: auto;
     max-height: none;
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: auto;
-  }
-
-  body.app-body.is-viewport-scaled .app-main {
-    width: auto;
-    height: auto;
-    transform: none;
   }
 
   .app-main {
@@ -2036,13 +1814,16 @@ textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent
     min-height: clamp(14rem, 34dvh, 24rem);
   }
 
-  #fingerPanel.pose-card,
-  .dash-right .card--export {
+  #fingerPanel.pose-card {
     flex: 0 0 auto;
   }
 }
 
 @media (max-width: 900px) {
+  :root {
+    --scene-min: clamp(18rem, 56dvh, 36rem);
+  }
+
   .row-top, .row-bot { grid-template-columns: 1fr; }
   .row-top .card:last-child { grid-column: auto; }
   .dashboard-grid {
@@ -2060,7 +1841,7 @@ textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent
 
   .dash-scene,
   .scene-area--fill {
-    min-height: clamp(18rem, 56dvh, 36rem);
+    min-height: var(--scene-min);
   }
 
   .dash-scene { order: 1; }
@@ -2074,9 +1855,10 @@ textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent
 
 @media (max-width: 480px) {
   :root {
-    --app-pad: 0.25rem;
-    --app-gap: 0.375rem;
-    --card-pad: 0.5rem;
+    --app-pad: var(--space-1);
+    --app-gap: var(--space-2);
+    --card-pad: var(--space-2);
+    --touch-hit: 2.75rem;
     --scene-min: clamp(16rem, 54dvh, 30rem);
   }
 
@@ -2090,16 +1872,6 @@ textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent
   .scene-toolbar .btn {
     flex: 1 1 calc(20% - 0.375rem);
     min-width: var(--touch-hit);
-  }
-
-  .side-shortcuts {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
-  .shortcut-row {
-    grid-template-columns: minmax(3.5rem, auto) 1fr;
-    padding: 0.375rem 0.5rem;
   }
 
   .snake-card:not(.snake-card--easter) {

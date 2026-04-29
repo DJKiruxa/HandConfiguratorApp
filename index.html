@@ -19,25 +19,27 @@
   <section id="view-dashboard" class="dashboard-grid">
 
     <aside class="dash-col dash-left">
-      <div class="card card--compact card--toolbar">
-        <div class="side-toolbar-brand">
-          <div class="logo">
-            <div class="logo-mark" aria-hidden="true"></div>
-            <span class="logo-text">BABYLON<span>_</span>PIPE</span>
+      <div class="card card--compact card--export">
+        <div class="card-header">
+          <div>
+            <div class="card-meta">экспорт</div>
+            <div class="card-title">JSON / экспорт</div>
           </div>
+          <div id="recipeStats" class="recipe-statline" aria-live="polite">—</div>
         </div>
-        <div class="side-shortcuts" id="shortcutsBar" aria-label="Горячие клавиши">
-          <div class="shortcut-row"><kbd class="shortcut-kbd">N</kbd><span class="shortcut-label">сброс пальцев</span></div>
-          <div class="shortcut-row"><kbd class="shortcut-kbd">T</kbd><span class="shortcut-label">тема</span></div>
-          <div class="shortcut-row"><kbd class="shortcut-kbd">?</kbd><span class="shortcut-label">подсказка</span></div>
-          <div class="shortcut-row"><kbd class="shortcut-kbd shortcut-kbd--wide">Ctrl+Z</kbd><span class="shortcut-label">отмена / повтор</span></div>
-          <div class="shortcut-row"><kbd class="shortcut-kbd">F</kbd><span class="shortcut-label">на весь экран</span></div>
-        </div>
-        <div class="side-toolbar-tools">
-          <button type="button" class="btn btn-ghost" data-action="toggle-theme" title="Тема (T)">тема</button>
-        </div>
-        <div class="side-toolbar-status">
-          <span class="status-dot" title="сессия"><span class="dot" aria-hidden="true"></span> сессия</span>
+        <div class="divider"></div>
+        <div class="send-area send-area--export">
+          <textarea id="recipeOutput" placeholder="// handPose + assembly…" spellcheck="false" aria-label="экспорт"></textarea>
+          <div class="recipe-statline recipe-statline--tight">
+            <span id="recipeStatus" style="color:var(--accent)">—</span>
+          </div>
+          <div class="send-actions send-actions--export">
+            <div class="export-group">
+              <button type="button" class="btn" data-recipe-action="export-json">.json</button>
+              <button type="button" class="btn" data-recipe-action="export-txt">.txt</button>
+            </div>
+            <button type="button" class="btn btn-primary" data-recipe-action="refresh-output">↻</button>
+          </div>
         </div>
       </div>
 
@@ -45,7 +47,7 @@
         <div class="card-header">
           <div>
             <div class="card-meta">импорт</div>
-            <div class="card-title">JSON позы</div>
+            <div class="card-title">Импорт JSON</div>
           </div>
         </div>
         <p class="card-hint card-hint--tight">Компактный JSON позы или старый <code>pipeline.handPose</code>.</p>
@@ -233,30 +235,7 @@
           </section>
         </div>
         <div class="sliders-actions sliders-actions--tight">
-          <button type="button" class="btn" data-hand-action="pose-reset" title="Все в ноль">сброс 0</button>
-        </div>
-      </div>
-      <div class="card card--compact card--export">
-        <div class="card-header">
-          <div>
-            <div class="card-meta">экспорт</div>
-            <div class="card-title">JSON позы</div>
-          </div>
-          <div id="recipeStats" class="recipe-statline" aria-live="polite">—</div>
-        </div>
-        <div class="divider"></div>
-        <div class="send-area send-area--export">
-          <textarea id="recipeOutput" placeholder="// handPose + assembly…" spellcheck="false" aria-label="экспорт"></textarea>
-          <div class="recipe-statline recipe-statline--tight">
-            <span id="recipeStatus" style="color:var(--accent)">—</span>
-          </div>
-          <div class="send-actions send-actions--export">
-            <div class="export-group">
-              <button type="button" class="btn" data-recipe-action="export-json">.json</button>
-              <button type="button" class="btn" data-recipe-action="export-txt">.txt</button>
-            </div>
-            <button type="button" class="btn btn-primary" data-recipe-action="refresh-output">↻</button>
-          </div>
+          <button type="button" class="btn" data-hand-action="pose-reset" title="Все в ноль">сброс</button>
         </div>
       </div>
     </aside>
