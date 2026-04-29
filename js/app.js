@@ -12,6 +12,16 @@ let armAnimationSequenceMode = false;
 let armAnimationSequence = [];
 
 function wireDashboardUI(dash) {
+  const sceneArea = document.querySelector('.scene-area');
+  const fullscreenButtons = document.querySelectorAll('[data-dash-action="fullscreen"]');
+  const syncFullscreenButtons = () => {
+    const isFullscreen = document.fullscreenElement === sceneArea;
+    fullscreenButtons.forEach((button) => {
+      button.setAttribute('aria-pressed', isFullscreen ? 'true' : 'false');
+      button.title = isFullscreen ? 'Выйти из полноэкранного режима' : 'F';
+    });
+  };
+
   document.querySelectorAll('[data-dash-action="reload-assembly"]').forEach((btn) =>
     btn.addEventListener('click', () => { dash?.reloadAssemblyFromStorage(); toast('сборка перезагружена'); }),
   );
@@ -21,13 +31,17 @@ function wireDashboardUI(dash) {
   document.querySelectorAll('[data-dash-action="reset-cam"]').forEach((b) =>
     b.addEventListener('click', () => { dash?.resetCamera(); toast('камера сброшена'); }),
   );
-  document.querySelectorAll('[data-dash-action="fullscreen"]').forEach((b) =>
+  fullscreenButtons.forEach((b) =>
     b.addEventListener('click', () => {
-      const el = document.querySelector('.scene-area');
-      if (!document.fullscreenElement) el?.requestFullscreen?.();
+      if (!document.fullscreenElement) sceneArea?.requestFullscreen?.();
       else document.exitFullscreen?.();
     }),
   );
+  document.querySelectorAll('[data-dash-action="exit-fullscreen"]').forEach((b) =>
+    b.addEventListener('click', () => document.fullscreenElement && document.exitFullscreen?.()),
+  );
+  document.addEventListener('fullscreenchange', syncFullscreenButtons);
+  syncFullscreenButtons();
 
   const dashJsonIn = document.getElementById('dashAssemblyJsonInput');
   dashJsonIn?.addEventListener('change', async (e) => {
