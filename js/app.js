@@ -4,6 +4,7 @@ import { initSnakeGame } from './modules/snakeGame.js';
 import { EVENTS, on, emit } from './modules/eventBus.js';
 import { DashboardRecipe, ASSEMBLY_STORAGE_KEY } from './modules/recipe.js';
 import { createDashboardScene } from './modules/scene.js';
+import { initArduinoSerialBridge } from './modules/arduinoSerial.js';
 
 let armAnimationGroupsState = [];
 let armAnimationActiveIndex = -1;
@@ -354,6 +355,7 @@ function main() {
   });
   recipe.init();
   dash?.applyHandPose?.(recipe.state?.handPose);
+  initArduinoSerialBridge({ toast });
 
   wireShortcuts(recipe);
 

@@ -58,6 +58,36 @@
         </div>
       </div>
 
+      <div class="card card--compact arduino-card">
+        <div class="card-header">
+          <div>
+            <div class="card-meta">Arduino</div>
+            <div class="card-title">COM4 палец</div>
+          </div>
+          <span class="pill" id="arduinoAngleOut">—</span>
+        </div>
+        <p class="card-hint card-hint--tight">
+          Выбери палец, нажми подключить и в окне браузера выбери Arduino / COM4.
+        </p>
+        <label class="setting-item" style="cursor:default">
+          <span class="setting-label">палец</span>
+          <select id="arduinoFingerSelect" class="seq-select">
+            <option value="0">большой</option>
+            <option value="1">указат.</option>
+            <option value="2">средний</option>
+            <option value="3">безым.</option>
+            <option value="4">мизинец</option>
+          </select>
+        </label>
+        <div class="sliders-actions sliders-actions--tight">
+          <button type="button" class="btn btn-primary" id="arduinoConnectBtn">подключить COM4</button>
+          <button type="button" class="btn" id="arduinoStopBtn" disabled>stop / hold</button>
+        </div>
+        <div class="recipe-statline recipe-statline--tight">
+          <span id="arduinoStatus" style="color:var(--accent)">не подключено</span>
+        </div>
+      </div>
+
       <div class="card card--compact animations-card">
         <div class="card-header">
           <div>
