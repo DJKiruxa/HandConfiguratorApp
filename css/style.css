@@ -909,6 +909,33 @@ html[data-theme="light"] .side-shortcuts {
   min-height: 0;
 }
 
+.animation-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.animation-header-btn {
+  min-height: 1.55rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  background: var(--bg3);
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  cursor: pointer;
+}
+
+.animation-header-btn:hover,
+.animation-header-btn.active,
+.animation-header-btn--play {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  color: var(--accent);
+}
+
 .animation-list {
   display: flex;
   flex-direction: column;
@@ -1000,6 +1027,57 @@ html[data-theme="light"] .side-shortcuts {
 
 .animation-current-time {
   color: var(--accent);
+}
+
+.animation-sequence-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-bottom: 0.15rem;
+}
+
+.animation-sequence-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  color: var(--text3);
+  cursor: pointer;
+}
+
+.animation-sequence-select input {
+  width: 0.8rem;
+  height: 0.8rem;
+  accent-color: var(--accent);
+}
+
+.animation-sequence-controls {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.animation-sequence-move {
+  width: 1.35rem;
+  height: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  background: var(--bg);
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  cursor: pointer;
+}
+
+.animation-sequence-move:not(:disabled):hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.animation-sequence-move:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .animation-timeline::-webkit-slider-thumb {

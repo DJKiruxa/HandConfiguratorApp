@@ -202,6 +202,8 @@ export function createDashboardScene(canvas, opts = {}) {
   let activeArmAnimationIndex = -1;
   let activeArmAnimationProgress = 0;
   let armAnimationProgressObs = null;
+  let armAnimationSequenceTimer = 0;
+  let armAnimationSequenceRunId = 0;
   let phalangeRig = [];
   let metacarpalRig = [];
   let rotationMechanismRig = [];
@@ -315,6 +317,14 @@ export function createDashboardScene(canvas, opts = {}) {
     }
   }
 
+  function clearArmAnimationSequence() {
+    armAnimationSequenceRunId += 1;
+    if (armAnimationSequenceTimer) {
+      clearTimeout(armAnimationSequenceTimer);
+      armAnimationSequenceTimer = 0;
+    }
+  }
+
   function getArmAnimationFrameAtProgress(preset, progress) {
     const from = preset.from ?? preset.group?.from ?? 0;
     const to = preset.to ?? preset.group?.to ?? from;
@@ -345,6 +355,7 @@ export function createDashboardScene(canvas, opts = {}) {
   }
 
   function stopArmAnimations() {
+    clearArmAnimationSequence();
     clearArmAnimationProgressObserver();
     armAnimationGroups.forEach((preset) => (preset.group || preset).stop());
     activeArmAnimationIndex = -1;
@@ -353,10 +364,11 @@ export function createDashboardScene(canvas, opts = {}) {
     notifyArmAnimationProgress();
   }
 
-  function playArmAnimation(index) {
+  function playArmAnimation(index, options = {}) {
     const preset = armAnimationGroups[index];
     const anim = preset?.group || preset;
     if (!anim) return false;
+    if (!options.fromSequence) clearArmAnimationSequence();
     clearArmAnimationProgressObserver();
     armAnimationGroups.forEach((item) => (item.group || item).stop());
     prepareArmAnimationForScrub(preset);
@@ -381,10 +393,36 @@ export function createDashboardScene(canvas, opts = {}) {
     return true;
   }
 
+  function playArmAnimationSequence(indices = []) {
+    const queue = indices
+      .map((index) => Number(index))
+      .filter((index) => Number.isInteger(index) && armAnimationGroups[index]);
+    if (!queue.length) return false;
+
+    clearArmAnimationSequence();
+    const run = armAnimationSequenceRunId;
+    let cursor = 0;
+
+    const playNext = () => {
+      if (run !== armAnimationSequenceRunId) return;
+      const index = queue[cursor];
+      const preset = armAnimationGroups[index];
+      if (!preset || !playArmAnimation(index, { fromSequence: true })) return;
+      cursor += 1;
+      if (cursor >= queue.length) return;
+      const delayMs = Math.max(1, (Number(preset.durationSec) || 0) * 1000) + 80;
+      armAnimationSequenceTimer = setTimeout(playNext, delayMs);
+    };
+
+    playNext();
+    return true;
+  }
+
   function seekArmAnimation(index, progress) {
     const preset = armAnimationGroups[index];
     const anim = preset?.group || preset;
     if (!anim) return false;
+    clearArmAnimationSequence();
     clearArmAnimationProgressObserver();
     armAnimationGroups.forEach((item) => (item.group || item).stop());
 
@@ -545,6 +583,7 @@ export function createDashboardScene(canvas, opts = {}) {
   async function reloadAssemblyFromStorage() {
     showLoading(true);
     disposeContent();
+    clearArmAnimationSequence();
     clearArmAnimationProgressObserver();
     armAnimationGroups = [];
     activeArmAnimationIndex = -1;
@@ -623,6 +662,7 @@ export function createDashboardScene(canvas, opts = {}) {
     playClip,
     stopClipPlayback,
     playArmAnimation,
+    playArmAnimationSequence,
     seekArmAnimation,
     stopArmAnimations,
     applyHandPose: applyHandPoseToRig,

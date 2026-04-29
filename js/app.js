@@ -6,6 +6,11 @@ import { DashboardRecipe, ASSEMBLY_STORAGE_KEY } from './modules/recipe.js';
 import { createDashboardScene } from './modules/scene.js';
 
 const DESKTOP_DESIGN_VIEWPORT = { width: 2560, height: 1440 };
+let armAnimationGroupsState = [];
+let armAnimationActiveIndex = -1;
+let armAnimationActiveProgress = 0;
+let armAnimationSequenceMode = false;
+let armAnimationSequence = [];
 
 function initViewportScale() {
   const root = document.documentElement;
@@ -75,6 +80,14 @@ function wireDashboardUI(dash) {
 
   const armAnimationList = document.getElementById('armAnimationList');
   armAnimationList?.addEventListener('click', (e) => {
+    const moveBtn = e.target.closest('[data-arm-sequence-move]');
+    if (moveBtn) {
+      const index = Number(moveBtn.dataset.armSequenceMove);
+      const direction = moveBtn.dataset.armSequenceDirection;
+      moveArmAnimationInSequence(index, direction);
+      return;
+    }
+
     const btn = e.target.closest('[data-arm-animation]');
     if (!btn) return;
     const index = Number(btn.dataset.armAnimation);
@@ -87,6 +100,25 @@ function wireDashboardUI(dash) {
     const index = Number(input.dataset.armTimeline);
     if (!Number.isInteger(index)) return;
     dash?.seekArmAnimation(index, Number(input.value) / 100);
+  });
+  armAnimationList?.addEventListener('change', (e) => {
+    const input = e.target.closest('[data-arm-sequence-select]');
+    if (!input) return;
+    const index = Number(input.dataset.armSequenceSelect);
+    if (!Number.isInteger(index)) return;
+    setArmAnimationSequenceSelected(index, input.checked);
+  });
+
+  document.getElementById('animationSequenceToggle')?.addEventListener('click', () => {
+    armAnimationSequenceMode = !armAnimationSequenceMode;
+    renderArmAnimationList(armAnimationGroupsState, armAnimationActiveIndex, armAnimationActiveProgress);
+  });
+  document.getElementById('animationSequencePlay')?.addEventListener('click', () => {
+    if (!armAnimationSequence.length) {
+      toast('выберите анимации для очереди', { type: 'warn' });
+      return;
+    }
+    if (dash?.playArmAnimationSequence(armAnimationSequence)) toast('очередь анимаций запущена');
   });
 }
 
@@ -105,6 +137,8 @@ function formatAnimationTime(seconds) {
 function updateArmAnimationProgress(activeIndex = -1, progress = 0, currentSec = 0) {
   const list = document.getElementById('armAnimationList');
   if (!list) return;
+  armAnimationActiveIndex = activeIndex;
+  armAnimationActiveProgress = progress;
   const safeProgress = Math.max(0, Math.min(1, Number(progress) || 0));
   const value = String(Math.round(safeProgress * 1000) / 10);
   list.querySelectorAll('.animation-item').forEach((item) => {
@@ -117,9 +151,44 @@ function updateArmAnimationProgress(activeIndex = -1, progress = 0, currentSec =
   });
 }
 
+function syncArmAnimationSequence(groups) {
+  const valid = new Set(groups.map((_, index) => index));
+  armAnimationSequence = armAnimationSequence.filter((index) => valid.has(index));
+}
+
+function updateArmAnimationSequenceButtons() {
+  const toggle = document.getElementById('animationSequenceToggle');
+  const play = document.getElementById('animationSequencePlay');
+  toggle?.classList.toggle('active', armAnimationSequenceMode);
+  if (toggle) toggle.textContent = armAnimationSequenceMode ? 'готово' : 'очередь';
+  if (play) play.hidden = !armAnimationSequenceMode;
+}
+
+function setArmAnimationSequenceSelected(index, selected) {
+  const exists = armAnimationSequence.includes(index);
+  if (selected && !exists) armAnimationSequence.push(index);
+  if (!selected && exists) armAnimationSequence = armAnimationSequence.filter((item) => item !== index);
+  renderArmAnimationList(armAnimationGroupsState, armAnimationActiveIndex, armAnimationActiveProgress);
+}
+
+function moveArmAnimationInSequence(index, direction) {
+  const position = armAnimationSequence.indexOf(index);
+  if (position < 0) return;
+  const nextPosition = direction === 'up' ? position - 1 : position + 1;
+  if (nextPosition < 0 || nextPosition >= armAnimationSequence.length) return;
+  [armAnimationSequence[position], armAnimationSequence[nextPosition]] =
+    [armAnimationSequence[nextPosition], armAnimationSequence[position]];
+  renderArmAnimationList(armAnimationGroupsState, armAnimationActiveIndex, armAnimationActiveProgress);
+}
+
 function renderArmAnimationList(groups = [], activeIndex = -1, activeProgress = 0) {
   const list = document.getElementById('armAnimationList');
   if (!list) return;
+  armAnimationGroupsState = groups;
+  armAnimationActiveIndex = activeIndex;
+  armAnimationActiveProgress = activeProgress;
+  syncArmAnimationSequence(groups);
+  updateArmAnimationSequenceButtons();
   list.replaceChildren();
   if (!groups.length) {
     const empty = document.createElement('div');
@@ -171,6 +240,38 @@ function renderArmAnimationList(groups = [], activeIndex = -1, activeProgress = 
     time.className = 'animation-time';
     time.append(currentTime, totalTime);
     timelineRow.append(timeline, time);
+
+    if (armAnimationSequenceMode) {
+      const sequenceRow = document.createElement('div');
+      sequenceRow.className = 'animation-sequence-row';
+      const sequenceIndex = armAnimationSequence.indexOf(index);
+      const checkboxLabel = document.createElement('label');
+      checkboxLabel.className = 'animation-sequence-select';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = sequenceIndex >= 0;
+      checkbox.dataset.armSequenceSelect = String(index);
+      const order = document.createElement('span');
+      order.textContent = sequenceIndex >= 0 ? `#${sequenceIndex + 1}` : 'выкл';
+      checkboxLabel.append(checkbox, order);
+
+      const controls = document.createElement('span');
+      controls.className = 'animation-sequence-controls';
+      ['up', 'down'].forEach((direction) => {
+        const move = document.createElement('button');
+        move.type = 'button';
+        move.className = 'animation-sequence-move';
+        move.dataset.armSequenceMove = String(index);
+        move.dataset.armSequenceDirection = direction;
+        move.textContent = direction === 'up' ? '↑' : '↓';
+        move.disabled = sequenceIndex < 0 ||
+          (direction === 'up' && sequenceIndex === 0) ||
+          (direction === 'down' && sequenceIndex === armAnimationSequence.length - 1);
+        controls.append(move);
+      });
+      sequenceRow.append(checkboxLabel, controls);
+      item.append(sequenceRow);
+    }
 
     item.append(button, timelineRow);
     list.append(item);
