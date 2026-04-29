@@ -190,8 +190,9 @@ export function createDashboardScene(canvas, opts = {}) {
   const dir = new BABYLON.DirectionalLight('dashD', new BABYLON.Vector3(-0.45, -0.85, -0.3), scene);
   dir.intensity = 0.55;
 
+  const disposers = [];
   applySceneFromTheme();
-  on(EVENTS.THEME_CHANGED, () => requestAnimationFrame(applySceneFromTheme));
+  disposers.push(on(EVENTS.THEME_CHANGED, () => requestAnimationFrame(applySceneFromTheme)));
 
   let contentRoot = null;
   let lastAssemblyData = null;
@@ -204,6 +205,7 @@ export function createDashboardScene(canvas, opts = {}) {
   let armAnimationProgressObs = null;
   let armAnimationSequenceTimer = 0;
   let armAnimationSequenceRunId = 0;
+  let disposed = false;
   let phalangeRig = [];
   let metacarpalRig = [];
   let rotationMechanismRig = [];
@@ -217,6 +219,32 @@ export function createDashboardScene(canvas, opts = {}) {
   const dashSceneById = (data, id) => normalizeAuthoring(data?.authoring).scenes.find((s) => s.id === id) || null;
   const dashClipById = (data, id) => normalizeAuthoring(data?.authoring).clips.find((c) => c.id === id) || null;
 
+  function hasTransformSnapshot(snap) {
+    return !!(snap && (snap.position || snap.rotation || snap.scaling));
+  }
+
+  function snapshotVec(source, fallback) {
+    const pick = (axis) => {
+      const value = Number(source?.[axis]);
+      return Number.isFinite(value) ? value : fallback[axis];
+    };
+    return { x: pick('x'), y: pick('y'), z: pick('z') };
+  }
+
+  function completeTransformSnapshot(node, snap) {
+    if (!node || !hasTransformSnapshot(snap)) return null;
+    return {
+      position: snapshotVec(snap.position, node.position),
+      rotation: snapshotVec(snap.rotation, node.rotation),
+      scaling: snapshotVec(snap.scaling, node.scaling),
+    };
+  }
+
+  function applyNodeTransformSnapshot(node, snap) {
+    const complete = completeTransformSnapshot(node, snap);
+    if (complete) applyTransformSnapshot(node, complete);
+  }
+
   function applyDashScenePayload(payload) {
     if (!payload?.camera) return false;
     applyCameraSnapshot(camera, payload.camera);
@@ -227,7 +255,7 @@ export function createDashboardScene(canvas, opts = {}) {
     const ch = contentRoot.children || [];
     for (let i = 0; i < ch.length && i < payload.parts.length; i++) {
       const tr = payload.parts[i].transform;
-      if (tr?.position) applyTransformSnapshot(ch[i], tr);
+      if (hasTransformSnapshot(tr)) applyNodeTransformSnapshot(ch[i], tr);
     }
     applyZoomLimits();
     return true;
@@ -246,9 +274,13 @@ export function createDashboardScene(canvas, opts = {}) {
     for (let i = 0; i < ch.length; i++) {
       const tra = getPartTransformForNodeInScene(a, ch[i], i);
       const trb = getPartTransformForNodeInScene(b, ch[i], i);
-      if (!tra && !trb) continue;
-      const lerped = lerpTransformSnapshot(tra, trb, t);
-      if (lerped?.position) applyTransformSnapshot(ch[i], lerped);
+      if (!hasTransformSnapshot(tra) && !hasTransformSnapshot(trb)) continue;
+      const lerped = lerpTransformSnapshot(
+        completeTransformSnapshot(ch[i], tra),
+        completeTransformSnapshot(ch[i], trb),
+        t,
+      );
+      applyNodeTransformSnapshot(ch[i], lerped);
     }
   }
 
@@ -614,7 +646,7 @@ export function createDashboardScene(canvas, opts = {}) {
       });
       if (!meshes.length) {
         showLoading(false);
-        requestAnimationFrame(() => engine.resize());
+        requestAnimationFrame(() => { if (!disposed) engine.resize(); });
         return;
       }
       contentRoot =
@@ -627,13 +659,13 @@ export function createDashboardScene(canvas, opts = {}) {
       console.warn('ARM.glb', e);
     } finally {
       showLoading(false);
-      requestAnimationFrame(() => engine.resize());
+      requestAnimationFrame(() => { if (!disposed) engine.resize(); });
     }
   }
 
   reloadAssemblyFromStorage();
 
-  on(EVENTS.HAND_POSE_CHANGED, ({ handPose } = {}) => applyHandPoseToRig(handPose));
+  disposers.push(on(EVENTS.HAND_POSE_CHANGED, ({ handPose } = {}) => applyHandPoseToRig(handPose)));
 
   if (opts.fpsEl) {
     let acc = 0;
@@ -643,14 +675,43 @@ export function createDashboardScene(canvas, opts = {}) {
     });
   }
 
-  engine.runRenderLoop(() => scene.render());
-  const onResize = () => engine.resize();
-  window.addEventListener('resize', onResize);
-  requestAnimationFrame(onResize);
+  let resizeRaf = 0;
+  let resizeObserver = null;
+  const renderScene = () => scene.render();
+  const resizeNow = () => {
+    resizeRaf = 0;
+    if (!disposed) engine.resize();
+  };
+  const scheduleResize = () => {
+    if (disposed || resizeRaf) return;
+    resizeRaf = requestAnimationFrame(resizeNow);
+  };
+
+  engine.runRenderLoop(renderScene);
+  window.addEventListener('resize', scheduleResize);
+  window.addEventListener('fullscreenchange', scheduleResize);
+  scheduleResize();
 
   if (typeof ResizeObserver !== 'undefined') {
-    const ro = new ResizeObserver(() => engine.resize());
-    if (canvas.parentElement) ro.observe(canvas.parentElement);
+    resizeObserver = new ResizeObserver(scheduleResize);
+    if (canvas.parentElement) resizeObserver.observe(canvas.parentElement);
+  }
+
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    clipRunId += 1;
+    clearArmAnimationSequence();
+    clearArmAnimationProgressObserver();
+    if (dashClipRenderObs) { scene.onBeforeRenderObservable.remove(dashClipRenderObs); dashClipRenderObs = null; }
+    if (resizeRaf) cancelAnimationFrame(resizeRaf);
+    resizeObserver?.disconnect();
+    window.removeEventListener('resize', scheduleResize);
+    window.removeEventListener('fullscreenchange', scheduleResize);
+    disposers.forEach((off) => off?.());
+    engine.stopRenderLoop(renderScene);
+    disposeContent();
+    engine.dispose();
   }
 
   return {
@@ -665,6 +726,7 @@ export function createDashboardScene(canvas, opts = {}) {
     playArmAnimationSequence,
     seekArmAnimation,
     stopArmAnimations,
+    dispose,
     applyHandPose: applyHandPoseToRig,
     resetCamera: () => {
       camera.alpha = -Math.PI / 2.35;

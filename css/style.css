@@ -67,6 +67,10 @@
   --control-h: clamp(2.4rem, 2.15rem + 0.65vw, 3rem);
   --touch-hit: var(--control-h);
   --control-font: var(--fs-sm);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 
   --panel-min: clamp(12rem, 16vw, 19rem);
   --panel-left: minmax(min(100%, var(--panel-min)), 0.9fr);
@@ -236,7 +240,8 @@ html[data-theme="light"] body {
 body.app-body {
   min-height: 100%;
   height: 100%;
-  width: 100vw;
+  width: 100%;
+  max-width: 100%;
   max-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -314,7 +319,11 @@ body::before {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: var(--app-pad);
+  padding:
+    calc(var(--app-pad) + var(--safe-top))
+    calc(var(--app-pad) + var(--safe-right))
+    calc(var(--app-pad) + var(--safe-bottom))
+    calc(var(--app-pad) + var(--safe-left));
   gap: var(--app-gap);
 }
 
@@ -1194,16 +1203,27 @@ html[data-theme="light"] .card {
 #fingerPanel.pose-card {
   flex: 1 1 auto;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pose-controls-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-right: 2px;
+  overscroll-behavior: contain;
 }
 
 .pose-card .sliders-actions {
   flex-shrink: 0;
-  margin-top: auto;
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
+  margin-top: 0;
   padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
   background: var(--bg2);
 }
 
@@ -1325,10 +1345,22 @@ html[data-theme="light"] .card {
 
 .scene-area canvas { position: relative; z-index: 1; display: block; width: 100% !important; height: 100% !important; }
 
+.scene-area:fullscreen {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  padding:
+    var(--safe-top)
+    var(--safe-right)
+    var(--safe-bottom)
+    var(--safe-left);
+}
+
 .scene-fps {
   position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
+  top: calc(var(--space-2) + var(--safe-top));
+  right: calc(var(--space-2) + var(--safe-right));
   z-index: 3;
   font-family: var(--mono);
   font-size: var(--fs-2xs);
@@ -1433,7 +1465,7 @@ html[data-theme="light"] .btn-primary:hover { filter: brightness(0.95); }
 
 .scene-hints {
   flex: 1 1 24rem;
-  min-width: min(100%, 18rem);
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1450,7 +1482,10 @@ html[data-theme="light"] .btn-primary:hover { filter: brightness(0.95); }
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  white-space: nowrap;
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .scene-hint-kbd {
@@ -1469,7 +1504,7 @@ html[data-theme="light"] .btn-primary:hover { filter: brightness(0.95); }
 }
 
 .scene-hint-kbd--wide {
-  min-width: 4.5rem;
+  min-width: min(4.5rem, 100%);
 }
 
 .recipe-statline {
@@ -1703,13 +1738,13 @@ textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent
 /* Toasts (JS appends to .toast-layer) */
 .toast-layer {
   position: fixed;
-  right: var(--space-4);
-  bottom: var(--space-4);
+  right: calc(var(--space-4) + var(--safe-right));
+  bottom: calc(var(--space-4) + var(--safe-bottom));
   z-index: 2000;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  max-width: min(22.5rem, calc(100vw - (var(--space-4) * 2)));
+  max-width: min(22.5rem, calc(100vw - (var(--space-4) * 2) - var(--safe-left) - var(--safe-right)));
   pointer-events: none;
 }
 
